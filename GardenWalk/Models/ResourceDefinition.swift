@@ -37,6 +37,22 @@ enum ResourceCatalog {
         ResourceSecondaryDrop(item: .stone, amount: 1, chance: 0.40)
     ])
     static let tin = ore("tin", "Tin Ore", level: 5, xp: 25, output: .tinOre)
+    static let runeEssence = ResourceDefinition(
+        id: "rune-essence",
+        name: "Rune Essence",
+        spot: .miningSpot,
+        skill: .mining,
+        requiredLevel: 5,
+        isPlayable: true,
+        xpReward: 30,
+        primaryOutput: .runeEssence,
+        primaryAmount: 1,
+        secondaryDrops: [],
+        workerOutput: .runeEssence,
+        workerOutputAmount: 1,
+        workerInterval: WorkerBalance.productionInterval,
+        workerXP: 6
+    )
     static let iron = ore("iron", "Iron Ore", level: 10, xp: 35, output: .ironOre, sellDrops: [
         ResourceSecondaryDrop(item: .gold, amount: 1, chance: 0.03)
     ])
@@ -55,23 +71,6 @@ enum ResourceCatalog {
     static let willow = wood("willow", "Willow", level: 30, xp: 65)
     static let maple = wood("maple", "Maple", level: 40, xp: 90, workerXP: 10)
 
-    static let runeEssence = ResourceDefinition(
-        id: "rune-essence",
-        name: "Rune Essence",
-        spot: .runeMine,
-        skill: .mining,
-        requiredLevel: 10,
-        isPlayable: true,
-        xpReward: 30,
-        primaryOutput: .runeEssence,
-        primaryAmount: 1,
-        secondaryDrops: [],
-        workerOutput: .runeEssence,
-        workerOutputAmount: 1,
-        workerInterval: WorkerBalance.productionInterval,
-        workerXP: 6
-    )
-
     static let shrimp = fish("shrimp", "Shrimp", level: 1, xp: 15, output: .shrimp, workerXP: 4)
     static let sardine = fish("sardine", "Sardine", level: 5, xp: 22, output: .sardine)
     static let trout = fish("trout", "Trout", level: 10, xp: 32, output: .trout, workerXP: 6)
@@ -80,10 +79,9 @@ enum ResourceCatalog {
     static let swordfish = fish("swordfish", "Swordfish", level: 40, xp: 70, output: .swordfish, workerXP: 9)
 
     static let all: [ResourceDefinition] = [
-        copper, tin, iron, coal, silver, goldOre, mithril, adamant,
+        copper, tin, runeEssence, iron, coal, silver, goldOre, mithril, adamant,
         tree, oak, willow, maple,
-        shrimp, sardine, trout, salmon, lobster, swordfish,
-        runeEssence
+        shrimp, sardine, trout, salmon, lobster, swordfish
     ]
 
     static func definition(id: String) -> ResourceDefinition? {

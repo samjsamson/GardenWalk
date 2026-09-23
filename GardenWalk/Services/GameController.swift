@@ -191,6 +191,8 @@ final class GameController {
             "Workers: \(workerPool.ownedCount) / \(workerCap)"
         case .backpackUpgrade:
             "Capacity \(playerRecord.inventoryCapacity)"
+        case .workerStorageUpgrade:
+            "Capacity \(workerStorageCapacity)"
         case .inventoryItem:
             nil
         }
@@ -198,6 +200,9 @@ final class GameController {
 
     /// True when this listing is a one-time tool the player already owns (bag or equipped).
     func ownsUniqueTool(_ listing: StoreListing) -> Bool {
+        if case .workerStorageUpgrade = listing.product {
+            return playerRecord.hasExpandedWorkerStorage
+        }
         guard case .inventoryItem(let item) = listing.product, StoreCatalog.isUniqueTool(item) else {
             return false
         }
@@ -243,6 +248,10 @@ final class GameController {
             let affordable = gold / unit
             let slots = max(0, workerCap - workerPool.ownedCount)
             return min(affordable, slots)
+        case .workerStorageUpgrade:
+            let unit = price(for: listing)
+            guard unit > 0 else { return 0 }
+            return min(1, gold / unit)
         case .inventoryItem(let item):
             let unit = price(for: listing)
             guard unit > 0 else { return 0 }
@@ -275,6 +284,9 @@ final class GameController {
             playerRecord.backpackTier += qty * listing.quantity
             playerRecord.inventoryCapacity += PlayerProgression.backpackCapacityPerTier * qty * listing.quantity
             playerRecord.hasPurchasedNonWorkerItem = true
+        case .workerStorageUpgrade:
+            playerRecord.hasExpandedWorkerStorage = true
+            playerRecord.hasPurchasedNonWorkerItem = true
         }
 
         save()
@@ -302,6 +314,8 @@ final class GameController {
             return inventory.quantity(of: item) > 0
         case .backpackUpgrade:
             return playerRecord.backpackTier > 0
+        case .workerStorageUpgrade:
+            return playerRecord.hasExpandedWorkerStorage
         }
     }
 
@@ -391,7 +405,7 @@ final class GameController {
         var rows: [(ResourceSpotKind?, Int, String, String)] = [
             (nil, unassignedWorkerCount, "person.fill", "Idle")
         ]
-        for spot in ResourceSpotKind.allCases where spot != .gardenSpot {
+        for spot in ResourceSpotKind.allCases where spot != .gardenSpot && spot != .runeMine {
             rows.append((spot, assignedWorkers(for: spot), spot.symbolName, spot.title))
         }
         rows.append((.gardenSpot, 0, ResourceSpotKind.gardenSpot.symbolName, ResourceSpotKind.gardenSpot.title))
@@ -709,7 +723,9 @@ final class GameController {
     }
 
     var workerStorageCapacity: Int {
-        WorkerBalance.storageCapacity
+        playerRecord.hasExpandedWorkerStorage
+            ? WorkerBalance.expandedStorageCapacity
+            : WorkerBalance.storageCapacity
     }
 
     var isWorkerStorageFull: Bool {
@@ -960,7 +976,7 @@ final class GameController {
     private func tickWorkers(delta: TimeInterval) {
         var speedBoost: WorkerSpeedBoost?
         let workersAreAssigned = ResourceSpotKind.allCases.contains { workerPool.assignedCount(for: $0) > 0 }
-        var remainingCapacity = max(0, WorkerBalance.storageCapacity - workerPool.storedItemCount)
+        var remainingCapacity = max(0, workerStorageCapacity - workerPool.storedItemCount)
         let results = workerProductionService.tick(
             delta: delta,
             plans: productionPlans(),
@@ -1007,7 +1023,7 @@ final class GameController {
         guard !resources.isEmpty else { return false }
         var produced = false
         while playerRecord.autoGatherProgress >= AutoGathererBalance.interval {
-            guard workerPool.storedItemCount < WorkerBalance.storageCapacity else { break }
+            guard workerPool.storedItemCount < workerStorageCapacity else { break }
             let index = playerRecord.autoGatherIndex % resources.count
             let resource = resources[index]
             workerPool.addStored(resource.primaryOutput, amount: resource.primaryAmount)
@@ -1044,11 +1060,11 @@ final class GameController {
             let rolls = result.cyclesCompleted * contribution.nodeCount
             guard rolls > 0 else { continue }
             for _ in 0..<rolls {
-                guard workerPool.storedItemCount < WorkerBalance.storageCapacity else { return }
+                guard workerPool.storedItemCount < workerStorageCapacity else { return }
                 for secondary in contribution.resource.secondaryDrops {
-                    guard workerPool.storedItemCount < WorkerBalance.storageCapacity else { return }
+                    guard workerPool.storedItemCount < workerStorageCapacity else { return }
                     guard Double.random(in: 0..<1, using: &generator) < secondary.chance else { continue }
-                    let amount = min(secondary.amount, WorkerBalance.storageCapacity - workerPool.storedItemCount)
+                    let amount = min(secondary.amount, workerStorageCapacity - workerPool.storedItemCount)
                     if amount > 0 {
                         workerPool.addStored(secondary.item, amount: amount)
                     }

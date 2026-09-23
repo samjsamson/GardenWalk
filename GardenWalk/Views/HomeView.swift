@@ -16,9 +16,6 @@ struct HomeView: View {
     @State private var showStore = false
     @State private var storeExpanded = false
     @State private var sellExpanded = false
-    @State private var showCombat = false
-    @State private var combatExpanded = false
-    @State private var battlingEnemy: EnemyDefinition?
 
     var body: some View {
         let _ = game.stateVersion
@@ -26,7 +23,6 @@ struct HomeView: View {
             ScrollView {
                 VStack(spacing: 20) {
                     tasksSection
-                    combatSection
                     generalStoreSection
                 }
                 .padding()
@@ -48,23 +44,6 @@ struct HomeView: View {
                 fullSheet(title: "General Store") {
                     storeContents(limit: nil)
                 }
-            }
-            .sheet(isPresented: $showCombat) {
-                NavigationStack {
-                    CombatView()
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Close") { showCombat = false }
-                            }
-                        }
-                }
-                .environment(game)
-            }
-            .fullScreenCover(item: $battlingEnemy) { enemy in
-                CombatBattleView(enemy: enemy) {
-                    battlingEnemy = nil
-                }
-                .environment(game)
             }
         }
     }
@@ -104,42 +83,6 @@ struct HomeView: View {
 
     private func dismissSheet() {
         showStore = false
-    }
-
-    private var combatPool: [EnemyDefinition] {
-        let ready = EnemyCatalog.all.filter { $0.isAvailable && game.combatLevel >= $0.requiredCombatLevel }
-        if ready.isEmpty { return Array(EnemyCatalog.all.prefix(3)) }
-        return ready.sorted { $0.requiredCombatLevel > $1.requiredCombatLevel }
-    }
-
-    private var combatSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            HStack {
-                sectionTitle("Combat") { showCombat = true }
-                Spacer()
-                if game.isCombatOnCooldown {
-                    Text("Next fight in \(game.combatCooldownLabel)")
-                        .font(.caption2.weight(.semibold))
-                        .foregroundStyle(GardenPalette.moss)
-                }
-            }
-            Text("Creatures you can fight")
-                .font(.caption)
-                .foregroundStyle(GardenPalette.inkMuted)
-            ForEach(window(combatPool, expanded: combatExpanded)) { enemy in
-                EnemyCard(
-                    enemy: enemy,
-                    combatLevel: game.combatLevel,
-                    canFight: game.canFight(enemy),
-                    blockReason: game.fightBlockReason(enemy),
-                    onFight: { battlingEnemy = enemy }
-                )
-            }
-            if combatPool.count > 3 {
-                expandButton(combatExpanded) { combatExpanded.toggle() }
-            }
-        }
-        .cardStyle()
     }
 
     @ViewBuilder
@@ -345,10 +288,6 @@ struct HomeView: View {
             .buttonStyle(.bordered)
             .controlSize(.small)
             .tint(GardenPalette.moss)
-    }
-
-    private func window<T>(_ items: [T], expanded: Bool) -> [T] {
-        expanded ? items : Array(items.prefix(3))
     }
 
     private func limited<T>(_ items: [T], to limit: Int?, expanded: Bool) -> [T] {

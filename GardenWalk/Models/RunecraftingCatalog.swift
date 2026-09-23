@@ -39,14 +39,14 @@ enum RunecraftingCatalog {
         switch item {
         case .runeEssence:
             return ItemDetails(
-                summary: "Unshaped stone from the Rune Mine.",
-                effect: "Mined at Mining level 10. Grants Mining XP. Shape it at an altar to make runes and earn Runecrafting XP.",
+                summary: "Unshaped stone used for runecrafting.",
+                effect: "Mined at Mining level 5. Grants Mining XP. Craft it at an altar on the Forge tab to make runes and earn Runecrafting XP.",
                 sellValue: 3
             )
         case .runePouch:
             return ItemDetails(
                 summary: "A stitched pouch for essence.",
-                effect: "Requires Runecrafting \(pouchLevel). While you own one, each altar visit can shape up to \(pouchBatch) Rune Essence instead of \(plainBatch).",
+                effect: "Requires Runecrafting \(pouchLevel). While you own one, each altar visit can craft up to \(pouchBatch) Rune Essence instead of \(plainBatch).",
                 sellValue: 40
             )
         default:

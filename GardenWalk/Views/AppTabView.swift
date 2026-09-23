@@ -12,9 +12,16 @@ struct AppTabView: View {
                     Label("Home", systemImage: "house.fill")
                 }
 
-            ForgeHubView()
+            NavigationStack {
+                CombatView()
+            }
+            .tabItem {
+                Label("Combat", systemImage: "shield.lefthalf.filled")
+            }
+
+            InventoryView()
                 .tabItem {
-                    Label("Forge", systemImage: "flame.fill")
+                    Label("Inventory", systemImage: "bag.fill")
                 }
 
             ResourcesView()
@@ -22,9 +29,14 @@ struct AppTabView: View {
                     Label("Resources", systemImage: "leaf.fill")
                 }
 
+            ForgeHubView()
+                .tabItem {
+                    Label("Forge", systemImage: "flame.fill")
+                }
+
             ProfileView()
                 .tabItem {
-                    Label(auth.currentUsername ?? "Profile", systemImage: "person.crop.circle")
+                    Label("User", systemImage: "person.crop.circle")
                 }
         }
         .tint(GardenPalette.moss)

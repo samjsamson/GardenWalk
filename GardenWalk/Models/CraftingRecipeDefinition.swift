@@ -63,44 +63,17 @@ enum CraftingCatalog {
     static let copperAxe = toolRecipe("copper-axe", .copperAxe, [
         CraftingIngredient(item: .copperOre, quantity: 5),
         CraftingIngredient(item: .wood, quantity: 3)
-    ], skill: .smithing, level: 1, xp: 25)
+    ], skill: .smithing, level: 1, xp: 50)
 
     static let copperPickaxe = toolRecipe("copper-pickaxe", .copperPickaxe, [
         CraftingIngredient(item: .copperOre, quantity: 5),
         CraftingIngredient(item: .wood, quantity: 3)
-    ], skill: .smithing, level: 1, xp: 25)
+    ], skill: .smithing, level: 1, xp: 50)
 
-    static let bronzeAxe = toolRecipe("bronze-axe", .bronzeAxe, [
-        CraftingIngredient(item: .bronzeBar, quantity: 2),
-        CraftingIngredient(item: .wood, quantity: 2)
-    ], skill: .smithing, level: 5, xp: 40)
-
-    static let bronzePickaxe = toolRecipe("bronze-pickaxe", .bronzePickaxe, [
-        CraftingIngredient(item: .bronzeBar, quantity: 2),
-        CraftingIngredient(item: .wood, quantity: 2)
-    ], skill: .smithing, level: 5, xp: 40)
-
-    static let ironAxe = toolRecipe("iron-axe", .ironAxe, [
-        CraftingIngredient(item: .ironOre, quantity: 4),
-        CraftingIngredient(item: .wood, quantity: 2)
-    ], skill: .smithing, level: 15, xp: 55)
-
-    static let ironPickaxe = toolRecipe("iron-pickaxe", .ironPickaxe, [
-        CraftingIngredient(item: .ironOre, quantity: 4),
-        CraftingIngredient(item: .wood, quantity: 2)
-    ], skill: .smithing, level: 15, xp: 55)
-
-    static let steelAxe = toolRecipe("steel-axe", .steelAxe, [
-        CraftingIngredient(item: .ironOre, quantity: 3),
-        CraftingIngredient(item: .coal, quantity: 2),
-        CraftingIngredient(item: .wood, quantity: 2)
-    ], skill: .smithing, level: 25, xp: 70)
-
-    static let steelPickaxe = toolRecipe("steel-pickaxe", .steelPickaxe, [
-        CraftingIngredient(item: .ironOre, quantity: 3),
-        CraftingIngredient(item: .coal, quantity: 2),
-        CraftingIngredient(item: .wood, quantity: 2)
-    ], skill: .smithing, level: 25, xp: 70)
+    static let copperFishingRod = toolRecipe("copper-fishing-rod", .copperFishingRod, [
+        CraftingIngredient(item: .copperOre, quantity: 3),
+        CraftingIngredient(item: .wood, quantity: 3)
+    ], skill: .smithing, level: 1, xp: 40)
 
     static let fishingRod = toolRecipe("fishing-rod", .fishingRod, [
         CraftingIngredient(item: .wood, quantity: 5)
@@ -145,7 +118,7 @@ enum CraftingCatalog {
         category: .weapons,
         requiredSkill: .smithing,
         requiredSkillLevel: 1,
-        skillXP: 25
+        skillXP: 50
     )
 
     static let studdedBoots = CraftingRecipeDefinition(
@@ -159,7 +132,7 @@ enum CraftingCatalog {
         category: .smithing,
         requiredSkill: .smithing,
         requiredSkillLevel: 5,
-        skillXP: 25
+        skillXP: 50
     )
 
     static let hardLeatherBoots = CraftingRecipeDefinition(
@@ -172,26 +145,23 @@ enum CraftingCatalog {
         category: .smithing,
         requiredSkill: .smithing,
         requiredSkillLevel: 1,
-        skillXP: 10
+        skillXP: 20
     )
 
     static let all: [CraftingRecipeDefinition] = [
         stoneAxe,
         stonePickaxe,
         fishingRod,
-        copperAxe,
-        copperPickaxe,
-        bronzeAxe,
-        bronzePickaxe,
-        ironAxe,
-        ironPickaxe,
-        steelAxe,
-        steelPickaxe,
         hardLeatherBoots,
         studdedBoots,
         stoneDagger,
         copperDagger
     ] + FarmingCatalog.recipes + MagicCatalog.recipes + [RunecraftingCatalog.pouchRecipe]
+
+    /// Copper tools shown on the Forge anvil before bronze.
+    static var copperForgeTools: [CraftingRecipeDefinition] {
+        [copperAxe, copperPickaxe, copperFishingRod]
+    }
 
     private static func toolRecipe(
         _ id: String,

@@ -2,23 +2,23 @@ import SwiftUI
 
 struct AltarBoard: View {
     @Environment(GameController.self) private var game
-    @State private var shapingAltar: AltarDefinition?
+    @State private var craftingAltar: AltarDefinition?
 
     var body: some View {
         let _ = game.stateVersion
         VStack(alignment: .leading, spacing: 8) {
             Text("Altars")
                 .font(.subheadline.weight(.semibold))
-            Text("Shape Rune Essence into runes. This grants Runecrafting XP. Quick Shape uses \(game.altarBatchLimit()) essence\(game.inventory.quantity(of: .runePouch) > 0 ? " with your pouch" : "").")
+            Text("Craft Rune Essence into runes. This grants Runecrafting XP. Quick Craft uses \(game.altarBatchLimit()) essence\(game.inventory.quantity(of: .runePouch) > 0 ? " with your pouch" : "").")
                 .font(.caption)
                 .foregroundStyle(GardenPalette.inkMuted)
             ForEach(RunecraftingCatalog.altars) { altar in
                 altarRow(altar)
             }
         }
-        .sheet(item: $shapingAltar) { altar in
+        .sheet(item: $craftingAltar) { altar in
             AltarQuantitySheet(altar: altar) {
-                shapingAltar = nil
+                craftingAltar = nil
             }
             .environment(game)
             .presentationDetents([.medium])
@@ -42,15 +42,15 @@ struct AltarBoard: View {
                     .foregroundStyle(GardenPalette.inkMuted)
             }
             Spacer(minLength: 4)
-            Button(quick > 1 ? "Shape \(quick)" : "Shape") {
+            Button(quick > 1 ? "Craft \(quick)" : "Craft") {
                 game.craftAtAltar(altar)
             }
             .buttonStyle(.bordered)
             .controlSize(.small)
             .tint(GardenPalette.moss)
             .disabled(locked || quick == 0)
-            Button("Shape X") {
-                shapingAltar = altar
+            Button("Craft X") {
+                craftingAltar = altar
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
@@ -117,7 +117,7 @@ private struct AltarQuantitySheet: View {
                 }
                 .buttonStyle(.bordered)
 
-                Button("Shape \(quantity)") {
+                Button("Craft \(quantity)") {
                     game.craftAtAltar(altar, quantity: quantity)
                     onClose()
                 }
@@ -129,7 +129,7 @@ private struct AltarQuantitySheet: View {
                 Spacer()
             }
             .padding()
-            .navigationTitle("Shape Runes")
+            .navigationTitle("Craft Runes")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {

@@ -14,6 +14,8 @@ enum WorkerBalance {
     static let productionInterval: TimeInterval = 30
     /// Total items that can wait in Worker Storage before production pauses.
     static let storageCapacity = 80
+    /// Capacity after purchasing the Worker Storage Upgrade from the General Store.
+    static let expandedStorageCapacity = 120
     static let baseWorkerCap = 10
     static let expandedWorkerCap = 20
     /// Starting Total Level is one level in each skill. Four more levels expand the worker cap.
@@ -28,6 +30,7 @@ final class PlayerRecord {
     var skinToneRaw: String? = nil
     var clothingToneRaw: String? = nil
     var completedTaskIDsRaw: String?
+    var hasExpandedWorkerStorage: Bool = false
     var hasAssignedWorker: Bool = false
     var hasCollectedWorkerOutput: Bool = false
     var hasSoldItem: Bool = false

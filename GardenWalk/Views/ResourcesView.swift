@@ -12,7 +12,8 @@ struct ResourcesView: View {
                         WorkerStorageCard()
                     }
                     AutoGathererCard()
-                    ForEach(ResourceSpotKind.allCases) { spot in
+                    WorkerOverviewBar()
+                    ForEach(ResourceSpotKind.allCases.filter { $0 != .runeMine }) { spot in
                         ResourceSpotCard(spot: spot)
                     }
 
@@ -55,25 +56,27 @@ private struct WorkerStorageCard: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            HStack {
+            HStack(spacing: 10) {
                 Text("Worker Storage")
                     .font(.headline)
-                Spacer()
+                Spacer(minLength: 8)
+                ProgressView(value: game.workerStorageFraction)
+                    .tint(game.isWorkerStorageFull ? GardenPalette.soil : GardenPalette.moss)
+                    .frame(width: 72, height: 6)
                 Text("\(game.workerStorageCount) / \(game.workerStorageCapacity)")
                     .font(.caption.weight(.semibold).monospacedDigit())
                     .foregroundStyle(game.isWorkerStorageFull ? GardenPalette.soil : GardenPalette.leaf)
+                    .fixedSize()
             }
 
-            ProgressView(value: game.workerStorageFraction)
-                .tint(game.isWorkerStorageFull ? GardenPalette.soil : GardenPalette.moss)
-
-            HStack(spacing: 8) {
+            HStack(spacing: 10) {
+                Text(game.nextWorkerTickLabel)
+                    .font(.caption.weight(.semibold))
+                    .foregroundStyle(game.isWorkerStorageFull ? GardenPalette.soil : GardenPalette.inkMuted)
+                Spacer(minLength: 8)
                 ProgressView(value: game.nextWorkerTickFraction)
                     .tint(GardenPalette.leaf)
-                Text(game.nextWorkerTickLabel)
-                    .font(.caption2.weight(.semibold))
-                    .foregroundStyle(game.isWorkerStorageFull ? GardenPalette.soil : GardenPalette.inkMuted)
-                    .fixedSize()
+                    .frame(width: 72, height: 6)
             }
 
             if game.workerStorageStacks.isEmpty {
@@ -103,6 +106,55 @@ private struct WorkerStorageCard: View {
         .padding(14)
         .background(.white, in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .shadow(color: .black.opacity(0.05), radius: 10, y: 3)
+    }
+}
+
+struct WorkerOverviewBar: View {
+    @Environment(GameController.self) private var game
+
+    var body: some View {
+        let rows = game.workerOverviewCounts()
+        let inUse = game.workerPool.totalAssignedWorkers
+        let owned = game.workerPool.ownedCount
+        HStack(spacing: 0) {
+            Text("Workers")
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(GardenPalette.ink)
+                .padding(.trailing, 8)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 0) {
+                    ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+                        if index > 0 {
+                            Text("|")
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(GardenPalette.inkMuted.opacity(0.55))
+                                .padding(.horizontal, 6)
+                        }
+                        HStack(spacing: 4) {
+                            Image(systemName: row.symbol)
+                                .font(.caption.weight(.semibold))
+                                .foregroundStyle(GardenPalette.moss)
+                            Text(row.count.formatted())
+                                .font(.caption.weight(.bold).monospacedDigit())
+                                .foregroundStyle(GardenPalette.ink)
+                        }
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("\(row.label) \(row.count)")
+                    }
+                }
+            }
+
+            Text("\(inUse)/\(owned)")
+                .font(.caption.weight(.bold).monospacedDigit())
+                .foregroundStyle(GardenPalette.moss)
+                .padding(.leading, 8)
+                .accessibilityLabel("\(inUse) of \(owned) workers in use")
+        }
+        .padding(.horizontal, 12)
+        .padding(.vertical, 10)
+        .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
     }
 }
 
@@ -167,12 +219,6 @@ private struct ResourceSpotCard: View {
                     }
                 }
 
-                if spot == .runeMine {
-                    Text("Mining Rune Essence grants Mining XP. The mine opens at Mining level 10.")
-                        .font(.caption)
-                        .foregroundStyle(GardenPalette.inkMuted)
-                    AltarBoard()
-                }
             }
         }
         .padding(14)

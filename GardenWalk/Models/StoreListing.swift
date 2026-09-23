@@ -20,6 +20,7 @@ enum StoreProduct: Equatable {
     case worker
     case inventoryItem(InventoryItemID)
     case backpackUpgrade
+    case workerStorageUpgrade
 }
 
 struct StoreListing: Identifiable, Equatable {
@@ -45,6 +46,8 @@ struct StoreListing: Identifiable, Equatable {
             "A helper you assign to a resource spot."
         case .backpackUpgrade:
             "A larger pack for carrying more."
+        case .workerStorageUpgrade:
+            "Expands how much workers can stockpile."
         case .inventoryItem(let item):
             item.summary
         }
@@ -56,6 +59,8 @@ struct StoreListing: Identifiable, Equatable {
             "Assigned workers add resources to Worker Storage over time. Collect that storage to move everything into your inventory. Total level sets how many you can own."
         case .backpackUpgrade:
             "Each purchase increases saved inventory capacity by \(PlayerProgression.backpackCapacityPerTier)."
+        case .workerStorageUpgrade:
+            "One-time purchase. Increases Worker Storage capacity from \(WorkerBalance.storageCapacity) to \(WorkerBalance.expandedStorageCapacity)."
         case .inventoryItem(let item):
             item.effect
         }
@@ -128,6 +133,18 @@ enum StoreCatalog {
         prerequisiteID: nil
     )
 
+    static let workerStorageUpgrade = StoreListing(
+        id: "worker-storage-upgrade",
+        name: "Worker Storage Upgrade",
+        product: .workerStorageUpgrade,
+        goldCost: 1000,
+        quantity: 1,
+        category: .machines,
+        requiredSkill: nil,
+        requiredSkillLevel: nil,
+        prerequisiteID: nil
+    )
+
     static let all: [StoreListing] = [
         worker,
         fishingRod,
@@ -137,7 +154,8 @@ enum StoreCatalog {
         stoneAxe, copperAxe, bronzeAxe, ironAxe, steelAxe,
         torch,
         autoGatherer,
-        backpackUpgrade
+        backpackUpgrade,
+        workerStorageUpgrade
     ] + FarmingCatalog.crops.map { crop in
         StoreListing(
             id: "\(crop.id)-seed",
@@ -173,9 +191,9 @@ enum StoreCatalog {
     /// Axes, pickaxes, and the fishing rod may only be purchased once.
     static func isUniqueTool(_ item: InventoryItemID) -> Bool {
         switch item {
-        case .fishingRod,
-             .stoneAxe, .copperAxe, .bronzeAxe, .ironAxe, .steelAxe,
-             .stonePickaxe, .copperPickaxe, .bronzePickaxe, .ironPickaxe, .steelPickaxe:
+        case .fishingRod, .copperFishingRod, .bronzeFishingRod, .ironFishingRod, .steelFishingRod, .mithrilFishingRod, .adamantFishingRod,
+             .stoneAxe, .copperAxe, .bronzeAxe, .ironAxe, .steelAxe, .mithrilAxe, .adamantAxe,
+             .stonePickaxe, .copperPickaxe, .bronzePickaxe, .ironPickaxe, .steelPickaxe, .mithrilPickaxe, .adamantPickaxe:
             true
         default:
             false

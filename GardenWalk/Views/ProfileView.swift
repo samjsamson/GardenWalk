@@ -14,14 +14,11 @@ struct ProfileView: View {
             ScrollView {
                 VStack(spacing: 16) {
                     EquipmentBoard()
-                    WorkerOverviewBar()
 
                     let stacks = game.inventory.nonEmptyStacks()
                     let bag = stacks.filter { $0.0.equipmentSlot == nil }
-                    let food = bag.filter { FarmingCatalog.healAmount(for: $0.0) != nil && FarmingCatalog.potion(for: $0.0) == nil }
                     let potions = bag.filter { FarmingCatalog.potion(for: $0.0) != nil }
                     let tools = bag.filter { InventoryClassification.isTool($0.0) }
-                    let resources = bag.filter { InventoryClassification.isResource($0.0) }
                     let other = bag.filter {
                         FarmingCatalog.healAmount(for: $0.0) == nil
                             && FarmingCatalog.potion(for: $0.0) == nil
@@ -31,9 +28,7 @@ struct ProfileView: View {
                     let gear = stacks.filter { $0.0.equipmentSlot != nil }
 
                     section("Equipment", items: gear, kind: .gear)
-                    section("Food", items: food, kind: .food)
                     statsSection
-                    section("Resources", items: resources, kind: .resource)
                     toolsSection(bagTools: tools)
                     section("Potions", items: potions, kind: .potion)
                     section("Other", items: other, kind: .other)
@@ -94,7 +89,7 @@ struct ProfileView: View {
     }
 
     private enum SectionKind {
-        case gear, food, potion, resource, tool, other
+        case gear, potion, tool, other
     }
 
     @ViewBuilder
@@ -122,16 +117,6 @@ struct ProfileView: View {
                             GearInventoryRow(item: item, quantity: quantity) {
                                 game.equip(item)
                             }
-                        case .food:
-                            EffectInventoryRow(
-                                item: item,
-                                quantity: quantity,
-                                effect: foodEffect(item),
-                                actionTitle: "Eat",
-                                canUse: game.canUse(item),
-                                onInspect: { inspectedItem = item },
-                                onUse: { game.use(item) }
-                            )
                         case .potion:
                             EffectInventoryRow(
                                 item: item,
@@ -194,49 +179,8 @@ struct ProfileView: View {
         .background(.white, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
-    private func foodEffect(_ item: InventoryItemID) -> String {
-        if let heal = FarmingCatalog.healAmount(for: item) {
-            return "+\(heal) HP"
-        }
-        return item.effect
-    }
-
     private func potionEffect(_ item: InventoryItemID) -> String {
         FarmingCatalog.potion(for: item)?.effect ?? item.effect
-    }
-}
-
-private struct WorkerOverviewBar: View {
-    @Environment(GameController.self) private var game
-
-    var body: some View {
-        let rows = game.workerOverviewCounts()
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 0) {
-                ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                    if index > 0 {
-                        Text("|")
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(GardenPalette.inkMuted.opacity(0.55))
-                            .padding(.horizontal, 6)
-                    }
-                    HStack(spacing: 4) {
-                        Image(systemName: row.symbol)
-                            .font(.caption.weight(.semibold))
-                            .foregroundStyle(GardenPalette.moss)
-                        Text(row.count.formatted())
-                            .font(.caption.weight(.bold).monospacedDigit())
-                            .foregroundStyle(GardenPalette.ink)
-                    }
-                    .accessibilityElement(children: .combine)
-                    .accessibilityLabel("\(row.label) \(row.count)")
-                }
-            }
-            .padding(.horizontal, 12)
-            .padding(.vertical, 10)
-        }
-        .background(.white, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-        .shadow(color: .black.opacity(0.04), radius: 6, y: 2)
     }
 }
 
@@ -334,9 +278,10 @@ private struct SkillXPBar: View {
 enum InventoryClassification {
     static func isTool(_ item: InventoryItemID) -> Bool {
         switch item {
-        case .stoneAxe, .copperAxe, .bronzeAxe, .ironAxe, .steelAxe,
-             .stonePickaxe, .copperPickaxe, .bronzePickaxe, .ironPickaxe, .steelPickaxe,
-             .fishingRod, .torch, .autoGatherer:
+        case .stoneAxe, .copperAxe, .bronzeAxe, .ironAxe, .steelAxe, .mithrilAxe, .adamantAxe,
+             .stonePickaxe, .copperPickaxe, .bronzePickaxe, .ironPickaxe, .steelPickaxe, .mithrilPickaxe, .adamantPickaxe,
+             .fishingRod, .copperFishingRod, .bronzeFishingRod, .ironFishingRod, .steelFishingRod, .mithrilFishingRod, .adamantFishingRod,
+             .torch, .autoGatherer:
             true
         default:
             false
@@ -355,7 +300,7 @@ enum InventoryClassification {
     }
 }
 
-private struct EffectInventoryRow: View {
+struct EffectInventoryRow: View {
     let item: InventoryItemID
     let quantity: Int
     let effect: String
@@ -397,7 +342,7 @@ private struct EffectInventoryRow: View {
     }
 }
 
-private struct CompactInventoryRow: View {
+struct CompactInventoryRow: View {
     let item: InventoryItemID
     let quantity: Int
     let canUse: Bool
@@ -479,7 +424,7 @@ private struct GearInventoryRow: View {
     }
 }
 
-private struct ItemDetailPopup: View {
+struct ItemDetailPopup: View {
     let item: InventoryItemID
     let onClose: () -> Void
 

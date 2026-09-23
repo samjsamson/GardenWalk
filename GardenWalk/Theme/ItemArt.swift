@@ -60,6 +60,7 @@ enum ItemVisual: Hashable {
     case item(InventoryItemID)
     case worker
     case backpack
+    case workerStorage
 }
 
 struct ItemArt {
@@ -107,6 +108,11 @@ enum ItemPalette {
     static let silver = Color(red: 0.84, green: 0.87, blue: 0.91)
     static let silverDeep = Color(red: 0.58, green: 0.62, blue: 0.68)
 
+    static let mithrilLight = Color(red: 0.62, green: 0.78, blue: 0.92)
+    static let mithrilDeep = Color(red: 0.16, green: 0.32, blue: 0.58)
+    static let adamantLight = Color(red: 0.55, green: 0.84, blue: 0.46)
+    static let adamantDeep = Color(red: 0.12, green: 0.40, blue: 0.22)
+
     static let tin = Color(red: 0.72, green: 0.76, blue: 0.78)
     static let apple = Color(red: 0.80, green: 0.18, blue: 0.16)
     static let appleLeaf = Color(red: 0.30, green: 0.58, blue: 0.28)
@@ -117,12 +123,14 @@ enum ItemArtCatalog {
         switch item {
         case .gold:
             return painted(item, category: .currency, glyph: .goldCoins, tint: ItemPalette.goldLight, secondary: ItemPalette.goldDeep)
-        case .stoneAxe, .copperAxe, .bronzeAxe, .ironAxe, .steelAxe:
+        case .stoneAxe, .copperAxe, .bronzeAxe, .ironAxe, .steelAxe, .mithrilAxe, .adamantAxe:
             return painted(item, category: .tool, glyph: .axe, tint: metalLight(for: item), secondary: metalDark(for: item))
-        case .stonePickaxe, .copperPickaxe, .bronzePickaxe, .ironPickaxe, .steelPickaxe:
+        case .stonePickaxe, .copperPickaxe, .bronzePickaxe, .ironPickaxe, .steelPickaxe, .mithrilPickaxe, .adamantPickaxe:
             return painted(item, category: .tool, glyph: .pickaxe, tint: metalLight(for: item), secondary: metalDark(for: item))
         case .fishingRod:
             return painted(item, category: .tool, glyph: .fishingRod, tint: ItemPalette.woodLight, secondary: ItemPalette.wood)
+        case .copperFishingRod, .bronzeFishingRod, .ironFishingRod, .steelFishingRod, .mithrilFishingRod, .adamantFishingRod:
+            return painted(item, category: .tool, glyph: .fishingRod, tint: metalLight(for: item), secondary: metalDark(for: item))
         case .stoneDagger:
             return painted(item, category: .weapon, glyph: .dagger(primitive: true), tint: ItemPalette.stoneLight, secondary: ItemPalette.stoneDark)
         case .copperDagger:
@@ -217,6 +225,15 @@ enum ItemArtCatalog {
         case .scimitar:
             glyph = .scimitar
             category = .weapon
+        case .axe:
+            glyph = .axe
+            category = .tool
+        case .pickaxe:
+            glyph = .pickaxe
+            category = .tool
+        case .fishingRod:
+            glyph = .fishingRod
+            category = .tool
         }
         let tint = record.item == .leatherBoots || record.item == .hardLeatherBoots
             ? ItemPalette.woodLight
@@ -236,9 +253,9 @@ enum ItemArtCatalog {
         case .steel:
             (ItemPalette.steelLight, ItemPalette.steelDeep)
         case .mithril:
-            (Color(red: 0.62, green: 0.78, blue: 0.92), Color(red: 0.16, green: 0.32, blue: 0.58))
+            (ItemPalette.mithrilLight, ItemPalette.mithrilDeep)
         case .adamant:
-            (Color(red: 0.55, green: 0.84, blue: 0.46), Color(red: 0.12, green: 0.40, blue: 0.22))
+            (ItemPalette.adamantLight, ItemPalette.adamantDeep)
         case nil:
             (ItemPalette.woodLight, ItemPalette.wood)
         }
@@ -252,6 +269,8 @@ enum ItemArtCatalog {
             worker
         case .backpack:
             backpack
+        case .workerStorage:
+            workerStorageUpgrade
         }
     }
 
@@ -267,6 +286,8 @@ enum ItemArtCatalog {
             .item(item)
         case .backpackUpgrade:
             .backpack
+        case .workerStorageUpgrade:
+            .workerStorage
         }
     }
 
@@ -358,6 +379,16 @@ enum ItemArtCatalog {
         glyph: .backpack
     )
 
+    static let workerStorageUpgrade = ItemArt(
+        displayName: "Worker Storage Upgrade",
+        category: .upgrade,
+        assetName: nil,
+        fallbackSymbol: "shippingbox.fill",
+        tint: ItemPalette.wood,
+        secondaryTint: ItemPalette.woodLight,
+        glyph: .crate
+    )
+
     static let worker = ItemArt(
         displayName: "Worker",
         category: .npc,
@@ -370,20 +401,24 @@ enum ItemArtCatalog {
 
     private static func metalLight(for item: InventoryItemID) -> Color {
         switch item {
-        case .copperAxe, .copperPickaxe: ItemPalette.copperLight
-        case .bronzeAxe, .bronzePickaxe: ItemPalette.bronzeLight
-        case .ironAxe, .ironPickaxe: ItemPalette.ironLight
-        case .steelAxe, .steelPickaxe: ItemPalette.steelLight
+        case .copperAxe, .copperPickaxe, .copperFishingRod: ItemPalette.copperLight
+        case .bronzeAxe, .bronzePickaxe, .bronzeFishingRod: ItemPalette.bronzeLight
+        case .ironAxe, .ironPickaxe, .ironFishingRod: ItemPalette.ironLight
+        case .steelAxe, .steelPickaxe, .steelFishingRod: ItemPalette.steelLight
+        case .mithrilAxe, .mithrilPickaxe, .mithrilFishingRod: ItemPalette.mithrilLight
+        case .adamantAxe, .adamantPickaxe, .adamantFishingRod: ItemPalette.adamantLight
         default: ItemPalette.stoneLight
         }
     }
 
     private static func metalDark(for item: InventoryItemID) -> Color {
         switch item {
-        case .copperAxe, .copperPickaxe: ItemPalette.copperDeep
-        case .bronzeAxe, .bronzePickaxe: ItemPalette.bronzeDeep
-        case .ironAxe, .ironPickaxe: ItemPalette.ironDeep
-        case .steelAxe, .steelPickaxe: ItemPalette.steelDeep
+        case .copperAxe, .copperPickaxe, .copperFishingRod: ItemPalette.copperDeep
+        case .bronzeAxe, .bronzePickaxe, .bronzeFishingRod: ItemPalette.bronzeDeep
+        case .ironAxe, .ironPickaxe, .ironFishingRod: ItemPalette.ironDeep
+        case .steelAxe, .steelPickaxe, .steelFishingRod: ItemPalette.steelDeep
+        case .mithrilAxe, .mithrilPickaxe, .mithrilFishingRod: ItemPalette.mithrilDeep
+        case .adamantAxe, .adamantPickaxe, .adamantFishingRod: ItemPalette.adamantDeep
         default: ItemPalette.stoneDark
         }
     }

@@ -138,7 +138,7 @@ extension GameController {
         if let skill = skills[.runecrafting] {
             SkillProgressService.addXP(altar.xp * count, to: skill)
         }
-        postNotice("Shaped \(made) \(altar.rune.displayName).")
+        postNotice("Crafted \(made) \(altar.rune.displayName).")
         save()
     }
 

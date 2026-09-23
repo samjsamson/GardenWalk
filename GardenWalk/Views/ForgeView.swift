@@ -26,6 +26,7 @@ struct ForgeView: View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
                 forgeBlock
+                altarsBlock
                 craftingBlock
             }
             .padding()
@@ -88,6 +89,18 @@ struct ForgeView: View {
         }
     }
 
+    private var altarsBlock: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Runecrafting")
+                .font(.headline)
+            AltarBoard()
+        }
+        .padding()
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.05), radius: 12, y: 4)
+    }
+
     private var furnace: some View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Smelt ore into bars. Smithing level gates the hotter metals.")
@@ -106,9 +119,31 @@ struct ForgeView: View {
 
     private var anvil: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text("Smith bars into weapons and armor at the anvil.")
+            Text("Smith bars into weapons, armor, and gathering tools at the anvil.")
                 .font(.caption)
                 .foregroundStyle(GardenPalette.inkMuted)
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Leather")
+                    .font(.headline)
+                Text("Boots made from leather. Soft leather boots are also sold at the General Store.")
+                    .font(.caption)
+                    .foregroundStyle(GardenPalette.inkMuted)
+                ForEach(CraftingCatalog.recipes(in: .smithing)) { recipe in
+                    LeatherCraftCard(recipe: recipe)
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text("Copper")
+                    .font(.headline)
+                Text("Smithing 1 · Copper Ore + Wood")
+                    .font(.caption)
+                    .foregroundStyle(GardenPalette.inkMuted)
+                ForEach(CraftingCatalog.copperForgeTools) { recipe in
+                    LeatherCraftCard(recipe: recipe)
+                }
+            }
 
             ForEach(MetalTier.allCases) { tier in
                 VStack(alignment: .leading, spacing: 8) {
@@ -125,17 +160,6 @@ struct ForgeView: View {
                             onSmith: { game.smith(recipe, quantity: quantity(for: recipe.id, maximum: game.maxSmithCount(recipe))) }
                         )
                     }
-                }
-            }
-
-            VStack(alignment: .leading, spacing: 8) {
-                Text("Leather")
-                    .font(.headline)
-                Text("Boots made without the anvil. Leather boots are sold at the General Store.")
-                    .font(.caption)
-                    .foregroundStyle(GardenPalette.inkMuted)
-                ForEach(CraftingCatalog.recipes(in: .smithing)) { recipe in
-                    LeatherCraftCard(recipe: recipe)
                 }
             }
         }
@@ -425,7 +449,9 @@ private struct LeatherCraftCard: View {
                 Text(recipe.detailDescription)
                     .font(.caption)
                     .foregroundStyle(GardenPalette.inkMuted)
-                if let stats = SmithingCatalog.record(for: recipe.output)?.statsText {
+                if let stats = SmithingCatalog.record(for: recipe.output)?.statsText
+                    ?? EquipmentCatalog.workerYieldDescription(for: recipe.output)
+                    ?? EquipmentCatalog.combatStatsText(for: recipe.output) {
                     Text(stats)
                         .font(.caption2.weight(.semibold))
                         .foregroundStyle(GardenPalette.moss)

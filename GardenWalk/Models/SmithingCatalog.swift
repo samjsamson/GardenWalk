@@ -61,21 +61,21 @@ enum MetalTier: String, CaseIterable, Identifiable {
 
     var smeltXP: Int {
         switch self {
-        case .bronze: 8
-        case .iron: 15
-        case .steel: 22
-        case .mithril: 35
-        case .adamant: 50
+        case .bronze: 16
+        case .iron: 30
+        case .steel: 44
+        case .mithril: 70
+        case .adamant: 100
         }
     }
 
     var smithXPPerBar: Int {
         switch self {
-        case .bronze: 8
-        case .iron: 12
-        case .steel: 16
-        case .mithril: 22
-        case .adamant: 30
+        case .bronze: 16
+        case .iron: 24
+        case .steel: 32
+        case .mithril: 44
+        case .adamant: 60
         }
     }
 
@@ -251,6 +251,61 @@ enum SmithWeapon: String, CaseIterable {
     }
 }
 
+enum SmithTool: String, CaseIterable {
+    case axe
+    case pickaxe
+    case fishingRod
+
+    var displayName: String {
+        switch self {
+        case .axe: "Axe"
+        case .pickaxe: "Pickaxe"
+        case .fishingRod: "Fishing Rod"
+        }
+    }
+
+    var slot: EquipmentSlot {
+        switch self {
+        case .axe: .axe
+        case .pickaxe: .pickaxe
+        case .fishingRod: .fishingRod
+        }
+    }
+
+    var skill: SkillKind {
+        switch self {
+        case .axe: .woodcutting
+        case .pickaxe: .mining
+        case .fishingRod: .fishing
+        }
+    }
+
+    var visual: SmithingVisual {
+        switch self {
+        case .axe: .axe
+        case .pickaxe: .pickaxe
+        case .fishingRod: .fishingRod
+        }
+    }
+
+    var barCost: Int {
+        switch self {
+        case .axe, .pickaxe: 2
+        case .fishingRod: 1
+        }
+    }
+
+    func yieldBonus(for tier: MetalTier) -> Double {
+        switch tier {
+        case .bronze: 0.15
+        case .iron: 0.20
+        case .steel: 0.25
+        case .mithril: 0.30
+        case .adamant: 0.35
+        }
+    }
+}
+
 enum SmithingVisual {
     case ore
     case bar
@@ -264,6 +319,9 @@ enum SmithingVisual {
     case dagger
     case sword
     case scimitar
+    case axe
+    case pickaxe
+    case fishingRod
 }
 
 struct SmithingItemRecord: Equatable {
@@ -287,6 +345,8 @@ struct SmithingItemRecord: Equatable {
     let smithingXP: Int?
     let attackSpeed: Int?
     let weaponKind: String?
+    var workerYieldBonus: Double = 0
+    var workerSkill: SkillKind? = nil
 
     var requirementText: String? {
         guard let requiredSkill, let requiredLevel else { return nil }
@@ -298,6 +358,10 @@ struct SmithingItemRecord: Equatable {
         if defenseBonus > 0 { parts.append("Defense Bonus +\(defenseBonus)") }
         if attackBonus > 0 { parts.append("Attack Bonus +\(attackBonus)") }
         if strengthBonus > 0 { parts.append("Strength Bonus +\(strengthBonus)") }
+        if workerYieldBonus > 0, let workerSkill {
+            let percent = Int((workerYieldBonus * 100).rounded())
+            parts.append("\(workerSkill.displayName) Bonus +\(percent)%")
+        }
         if let attackSpeed, let weaponKind {
             parts.append("\(weaponKind) · \(CombatDamage.attackIntervalLabel(ticks: attackSpeed))")
         }
@@ -394,6 +458,8 @@ enum SmithingCatalog {
                     strength: record.strengthBonus,
                     requiredLevel: record.requiredLevel,
                     requiredSkill: record.requiredSkill,
+                    workerYieldBonus: record.workerYieldBonus,
+                    workerSkill: record.workerSkill,
                     attackSpeed: record.attackSpeed,
                     weaponKind: record.weaponKind
                 )
@@ -410,6 +476,9 @@ enum SmithingCatalog {
             }
             for weapon in SmithWeapon.allCases {
                 records.append(weaponRecord(tier, weapon))
+            }
+            for tool in SmithTool.allCases {
+                records.append(toolRecord(tier, tool))
             }
             if tier == .mithril || tier == .adamant {
                 records.append(metalBootRecord(tier))
@@ -510,6 +579,30 @@ enum SmithingCatalog {
         )
     }
 
+    private static func toolRecord(_ tier: MetalTier, _ tool: SmithTool) -> SmithingItemRecord {
+        let bars = tool.barCost
+        let yield = tool.yieldBonus(for: tier)
+        let percent = Int((yield * 100).rounded())
+        return gear(
+            item: toolItem(tier, tool),
+            name: "\(tier.displayName) \(tool.displayName)",
+            summary: "A \(tier.displayName.lowercased()) \(tool.displayName.lowercased()) for \(tool.skill.displayName.lowercased()).",
+            effect: "\(tool.skill.displayName) Bonus +\(percent)%. Equip in the \(tool.slot.displayName) slot.",
+            sell: gearSellValue(tier: tier, bars: bars),
+            visual: tool.visual,
+            tier: tier,
+            slot: tool.slot,
+            requiredSkill: nil,
+            requiredLevel: nil,
+            defense: 0,
+            attack: 0,
+            strength: 0,
+            bars: bars,
+            workerYieldBonus: yield,
+            workerSkill: tool.skill
+        )
+    }
+
     private static func weaponEffect(_ weapon: SmithWeapon, attack: Int, strength: Int, tier: MetalTier) -> String {
         let interval = CombatDamage.attackIntervalLabel(ticks: weapon.attackSpeed)
         let rhythm = weapon.attackSpeed <= 4
@@ -587,14 +680,16 @@ enum SmithingCatalog {
         visual: SmithingVisual,
         tier: MetalTier,
         slot: EquipmentSlot,
-        requiredSkill: SkillKind,
-        requiredLevel: Int,
+        requiredSkill: SkillKind?,
+        requiredLevel: Int?,
         defense: Int,
         attack: Int,
         strength: Int,
         bars: Int,
         attackSpeed: Int? = nil,
-        weaponKind: String? = nil
+        weaponKind: String? = nil,
+        workerYieldBonus: Double = 0,
+        workerSkill: SkillKind? = nil
     ) -> SmithingItemRecord {
         SmithingItemRecord(
             item: item,
@@ -616,7 +711,9 @@ enum SmithingCatalog {
             smithingLevel: tier.smithingLevel,
             smithingXP: bars * tier.smithXPPerBar,
             attackSpeed: attackSpeed,
-            weaponKind: weaponKind
+            weaponKind: weaponKind,
+            workerYieldBonus: workerYieldBonus,
+            workerSkill: workerSkill
         )
     }
 
@@ -666,6 +763,26 @@ enum SmithingCatalog {
         case (.adamant, .dagger): .adamantDagger
         case (.adamant, .sword): .adamantSword
         case (.adamant, .scimitar): .adamantScimitar
+        }
+    }
+
+    private static func toolItem(_ tier: MetalTier, _ tool: SmithTool) -> InventoryItemID {
+        switch (tier, tool) {
+        case (.bronze, .axe): .bronzeAxe
+        case (.bronze, .pickaxe): .bronzePickaxe
+        case (.bronze, .fishingRod): .bronzeFishingRod
+        case (.iron, .axe): .ironAxe
+        case (.iron, .pickaxe): .ironPickaxe
+        case (.iron, .fishingRod): .ironFishingRod
+        case (.steel, .axe): .steelAxe
+        case (.steel, .pickaxe): .steelPickaxe
+        case (.steel, .fishingRod): .steelFishingRod
+        case (.mithril, .axe): .mithrilAxe
+        case (.mithril, .pickaxe): .mithrilPickaxe
+        case (.mithril, .fishingRod): .mithrilFishingRod
+        case (.adamant, .axe): .adamantAxe
+        case (.adamant, .pickaxe): .adamantPickaxe
+        case (.adamant, .fishingRod): .adamantFishingRod
         }
     }
 }

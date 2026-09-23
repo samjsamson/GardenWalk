@@ -22,12 +22,22 @@ enum InventoryItemID: String, CaseIterable, Codable, Identifiable {
     case bronzeAxe
     case ironAxe
     case steelAxe
+    case mithrilAxe
+    case adamantAxe
     case stonePickaxe
     case copperPickaxe
     case bronzePickaxe
     case ironPickaxe
     case steelPickaxe
+    case mithrilPickaxe
+    case adamantPickaxe
     case fishingRod
+    case copperFishingRod
+    case bronzeFishingRod
+    case ironFishingRod
+    case steelFishingRod
+    case mithrilFishingRod
+    case adamantFishingRod
     case torch
     case stoneDagger
     case copperDagger
@@ -147,12 +157,22 @@ enum InventoryItemID: String, CaseIterable, Codable, Identifiable {
         case .bronzeAxe: "Bronze Axe"
         case .ironAxe: "Iron Axe"
         case .steelAxe: "Steel Axe"
+        case .mithrilAxe: "Mithril Axe"
+        case .adamantAxe: "Adamant Axe"
         case .stonePickaxe: "Stone Pickaxe"
         case .copperPickaxe: "Copper Pickaxe"
         case .bronzePickaxe: "Bronze Pickaxe"
         case .ironPickaxe: "Iron Pickaxe"
         case .steelPickaxe: "Steel Pickaxe"
-        case .fishingRod: "Fishing Rod"
+        case .mithrilPickaxe: "Mithril Pickaxe"
+        case .adamantPickaxe: "Adamant Pickaxe"
+        case .fishingRod: "Wooden Fishing Rod"
+        case .copperFishingRod: "Copper Fishing Rod"
+        case .bronzeFishingRod: "Bronze Fishing Rod"
+        case .ironFishingRod: "Iron Fishing Rod"
+        case .steelFishingRod: "Steel Fishing Rod"
+        case .mithrilFishingRod: "Mithril Fishing Rod"
+        case .adamantFishingRod: "Adamant Fishing Rod"
         case .torch: "Torch"
         case .stoneDagger: "Stone Dagger"
         case .copperDagger: "Copper Dagger"

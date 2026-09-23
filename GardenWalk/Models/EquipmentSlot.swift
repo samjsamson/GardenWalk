@@ -83,15 +83,10 @@ enum EquipmentCatalog {
         EquippableItemDefinition(item: .copperDagger, slot: .weapon, bonuses: EquipmentBonuses(attack: 5, attackSpeed: 4, weaponKind: "Dagger")),
         tool(.stoneAxe, slot: .axe, skill: .woodcutting, bonus: 0.05),
         tool(.copperAxe, slot: .axe, skill: .woodcutting, bonus: 0.10),
-        tool(.bronzeAxe, slot: .axe, skill: .woodcutting, bonus: 0.15),
-        tool(.ironAxe, slot: .axe, skill: .woodcutting, bonus: 0.20),
-        tool(.steelAxe, slot: .axe, skill: .woodcutting, bonus: 0.25),
         tool(.stonePickaxe, slot: .pickaxe, skill: .mining, bonus: 0.05),
         tool(.copperPickaxe, slot: .pickaxe, skill: .mining, bonus: 0.10),
-        tool(.bronzePickaxe, slot: .pickaxe, skill: .mining, bonus: 0.15),
-        tool(.ironPickaxe, slot: .pickaxe, skill: .mining, bonus: 0.20),
-        tool(.steelPickaxe, slot: .pickaxe, skill: .mining, bonus: 0.25),
-        EquippableItemDefinition(item: .fishingRod, slot: .fishingRod)
+        tool(.fishingRod, slot: .fishingRod, skill: .fishing, bonus: 0.05),
+        tool(.copperFishingRod, slot: .fishingRod, skill: .fishing, bonus: 0.10),
     ] + SmithingCatalog.equipmentDefinitions() + MagicCatalog.equipmentDefinitions()
 
     private static func tool(

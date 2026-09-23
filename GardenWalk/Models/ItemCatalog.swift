@@ -40,16 +40,12 @@ enum ItemCatalog {
                 sellValue: fishSellValue(item),
                 extra: "Caught at Fishing level \(requiredLevel(for: item))."
             )
-        case .stoneAxe, .copperAxe, .bronzeAxe, .ironAxe, .steelAxe:
+        case .stoneAxe, .copperAxe, .bronzeAxe, .ironAxe, .steelAxe, .mithrilAxe, .adamantAxe:
             return toolDetails(item, summary: "An axe that improves worker woodcutting.")
-        case .stonePickaxe, .copperPickaxe, .bronzePickaxe, .ironPickaxe, .steelPickaxe:
+        case .stonePickaxe, .copperPickaxe, .bronzePickaxe, .ironPickaxe, .steelPickaxe, .mithrilPickaxe, .adamantPickaxe:
             return toolDetails(item, summary: "A pickaxe that improves worker mining.")
-        case .fishingRod:
-            return ItemDetails(
-                summary: "A rod used for fishing.",
-                effect: "Equip in the Rod slot. Workers at the Fishing Pond hold a rod and catch fish. Better fish unlock as your Fishing level rises.",
-                sellValue: 5
-            )
+        case .fishingRod, .copperFishingRod, .bronzeFishingRod, .ironFishingRod, .steelFishingRod, .mithrilFishingRod, .adamantFishingRod:
+            return toolDetails(item, summary: "A rod that improves worker fishing.")
         case .torch:
             return ItemDetails(summary: "A light source kept for future caves and dungeons.", effect: "Held in inventory. No effect yet.", sellValue: 6)
         case .stoneDagger:
@@ -98,11 +94,13 @@ enum ItemCatalog {
 
     private static func toolSellValue(_ item: InventoryItemID) -> Int {
         switch item {
-        case .stoneAxe, .stonePickaxe: 3
-        case .copperAxe, .copperPickaxe: 8
-        case .bronzeAxe, .bronzePickaxe: 14
-        case .ironAxe, .ironPickaxe: 22
-        case .steelAxe, .steelPickaxe: 36
+        case .stoneAxe, .stonePickaxe, .fishingRod: 3
+        case .copperAxe, .copperPickaxe, .copperFishingRod: 8
+        case .bronzeAxe, .bronzePickaxe, .bronzeFishingRod: 14
+        case .ironAxe, .ironPickaxe, .ironFishingRod: 22
+        case .steelAxe, .steelPickaxe, .steelFishingRod: 36
+        case .mithrilAxe, .mithrilPickaxe, .mithrilFishingRod: 55
+        case .adamantAxe, .adamantPickaxe, .adamantFishingRod: 80
         default: 3
         }
     }

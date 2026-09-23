@@ -107,9 +107,9 @@ final class ProgressionSystemsTests: XCTestCase {
 
     func testRuneMineAndRetiredSupplies() {
         let essence = ResourceCatalog.all.first { $0.primaryOutput == .runeEssence }
-        XCTAssertEqual(essence?.requiredLevel, 10)
+        XCTAssertEqual(essence?.requiredLevel, 5)
         XCTAssertEqual(essence?.skill, .mining)
-        XCTAssertEqual(essence?.spot, .runeMine)
+        XCTAssertEqual(essence?.spot, .miningSpot)
         XCTAssertTrue(InventoryItemID.allCases.contains(.runeEssence))
         XCTAssertNil(InventoryItemID(rawValue: "lootBag"))
         XCTAssertNil(InventoryItemID(rawValue: "mysteryCrate"))
