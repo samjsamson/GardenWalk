@@ -2,6 +2,7 @@ import SwiftUI
 
 struct AppTabView: View {
     @Environment(GameController.self) private var game
+    @Environment(AuthController.self) private var auth
 
     var body: some View {
         let _ = game.stateVersion
@@ -11,19 +12,19 @@ struct AppTabView: View {
                     Label("Home", systemImage: "house.fill")
                 }
 
+            ForgeHubView()
+                .tabItem {
+                    Label("Forge", systemImage: "flame.fill")
+                }
+
             ResourcesView()
                 .tabItem {
                     Label("Resources", systemImage: "leaf.fill")
                 }
 
-            InventoryView()
-                .tabItem {
-                    Label("Inventory", systemImage: "tray.full.fill")
-                }
-
             ProfileView()
                 .tabItem {
-                    Label("Profile", systemImage: "person.crop.circle")
+                    Label(auth.currentUsername ?? "Profile", systemImage: "person.crop.circle")
                 }
         }
         .tint(GardenPalette.moss)

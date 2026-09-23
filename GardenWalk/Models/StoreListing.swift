@@ -1,16 +1,16 @@
 import Foundation
 
 enum StoreCategory: String, CaseIterable, Identifiable {
-    case tools
     case machines
+    case tools
     case seeds
 
     var id: String { rawValue }
 
     var displayName: String {
         switch self {
+        case .machines: "Production"
         case .tools: "Tools"
-        case .machines: "Machines"
         case .seeds: "Seeds"
         }
     }
@@ -76,7 +76,6 @@ enum StoreCatalog {
     )
 
     static let fishingRod = toolListing("fishing-rod", .fishingRod, price: 12)
-    static let hammer = toolListing("hammer", .hammer, price: 6)
     static let leatherBoots = toolListing("leather-boots", .leatherBoots, price: 8)
     static let leather = toolListing("leather", .leather, price: 4)
 
@@ -132,7 +131,6 @@ enum StoreCatalog {
     static let all: [StoreListing] = [
         worker,
         fishingRod,
-        hammer,
         leatherBoots,
         leather,
         stonePickaxe, copperPickaxe, bronzePickaxe, ironPickaxe, steelPickaxe,
@@ -170,6 +168,18 @@ enum StoreCatalog {
 
     static func listing(id: String) -> StoreListing? {
         all.first { $0.id == id }
+    }
+
+    /// Axes, pickaxes, and the fishing rod may only be purchased once.
+    static func isUniqueTool(_ item: InventoryItemID) -> Bool {
+        switch item {
+        case .fishingRod,
+             .stoneAxe, .copperAxe, .bronzeAxe, .ironAxe, .steelAxe,
+             .stonePickaxe, .copperPickaxe, .bronzePickaxe, .ironPickaxe, .steelPickaxe:
+            true
+        default:
+            false
+        }
     }
 }
 

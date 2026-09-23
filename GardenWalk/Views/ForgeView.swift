@@ -18,30 +18,21 @@ struct ForgeView: View {
     @Environment(GameController.self) private var game
     @State private var station: ForgeStation = .furnace
     @State private var quantities: [String: Int] = [:]
+    @State private var expandedCrafting: Set<String> = []
+    @State private var craftingSheet: CraftingSheet?
 
     var body: some View {
         let _ = game.stateVersion
         ScrollView {
-            VStack(alignment: .leading, spacing: 16) {
-                Picker("Station", selection: $station) {
-                    ForEach(ForgeStation.allCases) { station in
-                        Text(station.title).tag(station)
-                    }
-                }
-                .pickerStyle(.segmented)
-
-                switch station {
-                case .furnace:
-                    furnace
-                case .anvil:
-                    anvil
-                }
+            VStack(alignment: .leading, spacing: 20) {
+                forgeBlock
+                craftingBlock
             }
             .padding()
         }
         .background(GardenPalette.cream.ignoresSafeArea())
         .navigationTitle("Forge")
-        .navigationBarTitleDisplayMode(.inline)
+        .navigationBarTitleDisplayMode(.large)
         .statusHUD()
         .onAppear {
             if station == .anvil {
@@ -51,6 +42,48 @@ struct ForgeView: View {
         .onChange(of: station) { _, newStation in
             if newStation == .anvil {
                 game.markAnvilVisited()
+            }
+        }
+        .sheet(item: $craftingSheet) { sheet in
+            NavigationStack {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        craftingContents(sheet)
+                    }
+                    .padding()
+                }
+                .background(GardenPalette.cream.ignoresSafeArea())
+                .navigationTitle(sheet.title)
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .cancellationAction) {
+                        Button("Close") { craftingSheet = nil }
+                    }
+                    ToolbarItem(placement: .topBarTrailing) {
+                        StatusHUD()
+                    }
+                }
+            }
+            .environment(game)
+        }
+    }
+
+    private var forgeBlock: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Forge")
+                .font(.headline)
+            Picker("Station", selection: $station) {
+                ForEach(ForgeStation.allCases) { station in
+                    Text(station.title).tag(station)
+                }
+            }
+            .pickerStyle(.segmented)
+
+            switch station {
+            case .furnace:
+                furnace
+            case .anvil:
+                anvil
             }
         }
     }
@@ -73,18 +106,9 @@ struct ForgeView: View {
 
     private var anvil: some View {
         VStack(alignment: .leading, spacing: 16) {
-            if game.inventory.quantity(of: .hammer) == 0 {
-                Text("You need a hammer to smith items.")
-                    .font(.subheadline.weight(.semibold))
-                    .foregroundStyle(GardenPalette.soil)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(12)
-                    .background(GardenPalette.soil.opacity(0.08), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-            } else {
-                Text("Your hammer stays in your bag. It is not used up.")
-                    .font(.caption)
-                    .foregroundStyle(GardenPalette.inkMuted)
-            }
+            Text("Smith bars into weapons and armor at the anvil.")
+                .font(.caption)
+                .foregroundStyle(GardenPalette.inkMuted)
 
             ForEach(MetalTier.allCases) { tier in
                 VStack(alignment: .leading, spacing: 8) {
@@ -117,10 +141,128 @@ struct ForgeView: View {
         }
     }
 
+    private var craftingBlock: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            Button {
+                craftingSheet = .all
+            } label: {
+                HStack(spacing: 6) {
+                    Text("Crafting")
+                        .font(.headline)
+                    Image(systemName: "arrow.up.right.square")
+                        .font(.caption)
+                }
+                .foregroundStyle(GardenPalette.ink)
+            }
+            .buttonStyle(.plain)
+
+            ForEach(CraftingCategory.allCases) { category in
+                let recipes = CraftingCatalog.recipes(in: category)
+                if !recipes.isEmpty {
+                    VStack(alignment: .leading, spacing: 10) {
+                        Button {
+                            craftingSheet = .category(category)
+                        } label: {
+                            HStack(spacing: 4) {
+                                Text(category.displayName)
+                                    .font(.subheadline.weight(.semibold))
+                                Image(systemName: "arrow.up.right.square")
+                                    .font(.caption2)
+                            }
+                            .foregroundStyle(GardenPalette.moss)
+                        }
+                        .buttonStyle(.plain)
+                        let shown = expandedCrafting.contains(category.id) ? recipes : Array(recipes.prefix(3))
+                        ForEach(shown) { recipe in
+                            craftRow(recipe)
+                        }
+                        if recipes.count > 3 {
+                            Button(expandedCrafting.contains(category.id) ? "Collapse" : "Expand") {
+                                if expandedCrafting.contains(category.id) {
+                                    expandedCrafting.remove(category.id)
+                                } else {
+                                    expandedCrafting.insert(category.id)
+                                }
+                            }
+                            .font(.caption.weight(.semibold))
+                            .buttonStyle(.bordered)
+                            .controlSize(.small)
+                            .tint(GardenPalette.moss)
+                        }
+                    }
+                }
+            }
+        }
+        .padding()
+        .background(.white, in: RoundedRectangle(cornerRadius: 24, style: .continuous))
+        .shadow(color: .black.opacity(0.05), radius: 12, y: 4)
+    }
+
+    @ViewBuilder
+    private func craftingContents(_ sheet: CraftingSheet) -> some View {
+        switch sheet {
+        case .all:
+            ForEach(CraftingCategory.allCases) { category in
+                let recipes = CraftingCatalog.recipes(in: category)
+                if !recipes.isEmpty {
+                    Text(category.displayName)
+                        .font(.headline)
+                        .foregroundStyle(GardenPalette.moss)
+                    ForEach(recipes) { recipe in
+                        craftRow(recipe)
+                    }
+                }
+            }
+        case .category(let category):
+            ForEach(CraftingCatalog.recipes(in: category)) { recipe in
+                craftRow(recipe)
+            }
+        }
+    }
+
+    private func craftRow(_ recipe: CraftingRecipeDefinition) -> some View {
+        ForgeCraftingRow(
+            item: recipe.output,
+            title: recipe.output.displayName,
+            detail: recipe.materialsDescription,
+            isEnabled: game.canCraft(recipe),
+            outputQuantity: recipe.outputQuantity
+        ) {
+            game.craft(recipe)
+        }
+    }
+
     private func quantity(for id: String, maximum: Int) -> Int {
         let stored = quantities[id] ?? 1
         if maximum <= 0 { return 1 }
         return min(max(1, stored), maximum)
+    }
+}
+
+struct ForgeHubView: View {
+    var body: some View {
+        NavigationStack {
+            ForgeView()
+        }
+    }
+}
+
+private enum CraftingSheet: Identifiable {
+    case all
+    case category(CraftingCategory)
+
+    var id: String {
+        switch self {
+        case .all: "all"
+        case .category(let category): category.id
+        }
+    }
+
+    var title: String {
+        switch self {
+        case .all: "Crafting"
+        case .category(let category): category.displayName
+        }
     }
 }
 
@@ -204,7 +346,6 @@ private struct SmithRecipeCard: View {
     let onSmith: () -> Void
 
     private var levelMet: Bool { game.skillLevel(for: .smithing) >= recipe.requiredSmithingLevel }
-    private var hasHammer: Bool { game.inventory.quantity(of: .hammer) > 0 }
     private var ownedBars: Int { game.inventory.quantity(of: recipe.bar) }
     private var maximum: Int { game.maxSmithCount(recipe) }
 
@@ -241,7 +382,7 @@ private struct SmithRecipeCard: View {
             .buttonStyle(.borderedProminent)
             .controlSize(.small)
             .tint(GardenPalette.moss)
-            .disabled(!levelMet || !hasHammer || maximum < 1)
+            .disabled(!levelMet || maximum < 1)
         }
         .padding(12)
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -251,7 +392,6 @@ private struct SmithRecipeCard: View {
 
     private var buttonTitle: String {
         if !levelMet { return "Requires Smithing \(recipe.requiredSmithingLevel)" }
-        if !hasHammer { return "Needs a hammer" }
         return "Smith"
     }
 
@@ -300,5 +440,67 @@ private struct LeatherCraftCard: View {
         }
         .padding(12)
         .background(.white, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+    }
+}
+
+private struct ForgeCraftingRow: View {
+    let item: InventoryItemID
+    let title: String
+    let detail: String
+    let isEnabled: Bool
+    let outputQuantity: Int
+    let action: () -> Bool
+    @State private var gains: [UUID] = []
+
+    var body: some View {
+        HStack(spacing: 12) {
+            ItemIconView(item: item, size: 36)
+            VStack(alignment: .leading, spacing: 2) {
+                Text(title)
+                    .font(.subheadline.weight(.semibold))
+                Text(detail)
+                    .font(.caption)
+                    .foregroundStyle(GardenPalette.inkMuted)
+            }
+            Spacer()
+            Button("Craft") {
+                guard action() else { return }
+                gains.append(UUID())
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(GardenPalette.moss)
+            .disabled(!isEnabled)
+            .overlay(alignment: .top) {
+                ForEach(gains, id: \.self) { id in
+                    ForgeCraftGainLabel(quantity: outputQuantity) {
+                        gains.removeAll { $0 == id }
+                    }
+                }
+            }
+        }
+    }
+}
+
+private struct ForgeCraftGainLabel: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let quantity: Int
+    let onFinish: () -> Void
+    @State private var floating = false
+
+    var body: some View {
+        Text("+\(quantity)")
+            .font(.title3.bold())
+            .foregroundStyle(GardenPalette.leaf)
+            .shadow(color: .white, radius: 2)
+            .offset(y: floating && !reduceMotion ? -46 : -8)
+            .opacity(floating ? 0 : 1)
+            .allowsHitTesting(false)
+            .accessibilityHidden(true)
+            .task {
+                withAnimation(.easeOut(duration: 0.85)) { floating = true }
+                do { try await Task.sleep(for: .milliseconds(900)) }
+                catch { return }
+                onFinish()
+            }
     }
 }

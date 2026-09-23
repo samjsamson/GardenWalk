@@ -130,29 +130,40 @@ final class GardenWalkFlowTests: XCTestCase {
         XCTAssertEqual(game.inventory.quantity(of: .shrimp), 1)
     }
 
-    func testGatheringNodesScaleWithOwnedWorkersAndEligibleOres() throws {
+    func testWorkersAllocateIndependentlyPerResource() throws {
         let game = try makeGame()
-        game.workerPool.ownedCount = 6
+        game.workerPool.ownedCount = 10
         game.skills[.mining]?.totalXP = SkillProgressService.totalXP(forLevel: 40)
-        game.skills[.woodcutting]?.totalXP = SkillProgressService.totalXP(forLevel: 40)
 
-        let mining = game.gatheringNodes(for: .miningSpot)
-        let woodcutting = game.gatheringNodes(for: .treePlot)
-        let fishing = game.gatheringNodes(for: .fishingPond)
+        game.assignWorker(to: ResourceCatalog.copper)
+        game.assignWorker(to: ResourceCatalog.copper)
+        game.assignWorker(to: ResourceCatalog.copper)
+        game.assignWorker(to: ResourceCatalog.tin)
+        game.assignWorker(to: ResourceCatalog.tin)
+        game.assignWorker(to: ResourceCatalog.tree)
+        game.assignWorker(to: ResourceCatalog.tree)
+        game.assignWorker(to: ResourceCatalog.tree)
+        game.assignWorker(to: ResourceCatalog.tree)
 
-        XCTAssertEqual(mining.count, 6)
-        XCTAssertEqual(woodcutting.count, 6)
-        XCTAssertEqual(fishing.count, 6)
-        XCTAssertTrue(mining.allSatisfy { !$0.isOccupied })
-        XCTAssertGreaterThan(Set(mining.map(\.resource.id)).count, 1)
-        XCTAssertGreaterThan(Set(woodcutting.map(\.resource.id)).count, 1)
-        XCTAssertTrue(mining.contains { $0.resource.id == "gold-ore" })
-        XCTAssertTrue(woodcutting.contains { $0.resource.id == "maple" })
+        XCTAssertEqual(game.assignedWorkers(for: ResourceCatalog.copper), 3)
+        XCTAssertEqual(game.assignedWorkers(for: ResourceCatalog.tin), 2)
+        XCTAssertEqual(game.assignedWorkers(for: ResourceCatalog.tree), 4)
+        XCTAssertEqual(game.unassignedWorkerCount, 1)
+        XCTAssertEqual(game.assignedWorkers(for: .miningSpot), 5)
+        XCTAssertEqual(game.gatheringNodes(for: .miningSpot).count, 5)
+        XCTAssertTrue(game.gatheringNodes(for: .miningSpot).allSatisfy(\.isOccupied))
+        XCTAssertTrue(game.canAssignWorker(to: ResourceCatalog.copper))
+
+        game.assignWorker(to: ResourceCatalog.copper)
+        XCTAssertEqual(game.assignedWorkers(for: ResourceCatalog.copper), 4)
+        XCTAssertEqual(game.unassignedWorkerCount, 0)
+        XCTAssertFalse(game.canAssignWorker(to: ResourceCatalog.tin))
     }
 
     func testRatFightPaysOnceAndStopsAtZeroHP() throws {
         let game = try makeGame()
         let goldBefore = game.inventory.quantity(of: .gold)
+        let meatBefore = game.inventory.quantity(of: .ratMeat)
         let xpBefore = game.skills[.combat]?.totalXP ?? 0
 
         let first = game.resolveFight(EnemyCatalog.rat)
@@ -163,7 +174,12 @@ final class GardenWalkFlowTests: XCTestCase {
         XCTAssertEqual(game.skills[.combat]?.totalXP, xpBefore + EnemyCatalog.rat.combatXP)
 
         let goldAfterWin = game.inventory.quantity(of: .gold)
-        XCTAssertGreaterThan(goldAfterWin, goldBefore)
+        let goldGained = goldAfterWin - goldBefore
+        XCTAssertGreaterThanOrEqual(goldGained, 0)
+        XCTAssertLessThanOrEqual(goldGained, 5)
+        let meatGained = game.inventory.quantity(of: .ratMeat) - meatBefore
+        XCTAssertGreaterThanOrEqual(meatGained, 0)
+        XCTAssertLessThanOrEqual(meatGained, 2)
 
         let second = game.resolveFight(EnemyCatalog.rat)
         XCTAssertNil(second)

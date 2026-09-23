@@ -146,37 +146,7 @@ private struct ResourceSpotCard: View {
                     .foregroundStyle(GardenPalette.inkMuted)
                 FarmingBoard()
             } else {
-                HStack(spacing: 8) {
-                    Button {
-                        game.assignWorker(to: spot)
-                    } label: {
-                        Image(systemName: "plus").frame(width: 24, height: 28)
-                    }
-                    .accessibilityLabel("Add worker to \(spot.title)")
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(GardenPalette.moss)
-                    .disabled(!game.canAssignWorker(to: spot))
-
-                    Button {
-                        game.removeWorker(from: spot)
-                    } label: {
-                        Image(systemName: "minus").frame(width: 24, height: 28)
-                    }
-                    .accessibilityLabel("Remove worker from \(spot.title)")
-                    .buttonStyle(.bordered)
-                    .controlSize(.small)
-                    .tint(GardenPalette.inkMuted)
-                    .disabled(!game.canRemoveWorker(from: spot))
-
-                    Spacer(minLength: 0)
-
-                    Text("\(game.unassignedWorkerCount) idle")
-                        .font(.caption2)
-                        .foregroundStyle(GardenPalette.inkMuted)
-                }
-
-                Text("Tap + to place an idle worker on an empty node. Collect what they produce from Worker Storage.")
+                Text("Assign idle workers to each resource with + / −. \(game.unassignedWorkerCount) idle.")
                     .font(.caption)
                     .foregroundStyle(GardenPalette.inkMuted)
 
@@ -215,58 +185,71 @@ private struct ResourceRow: View {
     @Environment(GameController.self) private var game
     let resource: ResourceDefinition
 
+    private var assigned: Int {
+        game.assignedWorkers(for: resource)
+    }
+
     var body: some View {
-        Button {
-            if game.canGather(resource) {
-                game.selectWorkerResource(resource)
-            }
-        } label: {
-            HStack(spacing: 10) {
-                ItemIconView(art: ItemArtCatalog.art(for: resource), size: 32)
+        HStack(spacing: 10) {
+            ItemIconView(art: ItemArtCatalog.art(for: resource), size: 32)
+            VStack(alignment: .leading, spacing: 2) {
                 Text(resource.name)
                     .font(.subheadline.weight(.semibold))
                     .lineLimit(1)
-                Spacer(minLength: 8)
-                trailing
-            }
-            .padding(.horizontal, 8)
-            .padding(.vertical, 6)
-            .background(
-                isFocused ? GardenPalette.moss.opacity(0.12) : Color.clear,
-                in: RoundedRectangle(cornerRadius: 12, style: .continuous)
-            )
-        }
-        .buttonStyle(.plain)
-        .disabled(!game.canGather(resource))
-        .opacity(game.canGather(resource) ? 1 : 0.6)
-    }
-
-    private var isFocused: Bool {
-        game.focusedResource(for: resource.spot)?.id == resource.id
-    }
-
-    @ViewBuilder
-    private var trailing: some View {
-            if game.canGather(resource) {
-                VStack(alignment: .trailing, spacing: 2) {
-                    Text(isFocused ? "Gathering" : "Lv \(resource.requiredLevel)")
-                        .font(.caption.weight(.semibold))
-                        .foregroundStyle(GardenPalette.moss)
-                    if !isFocused {
-                        Text("Tap to focus")
-                            .font(.caption2)
-                            .foregroundStyle(GardenPalette.inkMuted)
-                    }
+                if game.canGather(resource) {
+                    Text("Lv \(resource.requiredLevel)")
+                        .font(.caption2)
+                        .foregroundStyle(GardenPalette.inkMuted)
+                } else if resource.isPlayable {
+                    Text("Requires Lv \(resource.requiredLevel)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(GardenPalette.inkMuted)
+                } else {
+                    Text("Coming soon · Lv \(resource.requiredLevel)")
+                        .font(.caption2.weight(.semibold))
+                        .foregroundStyle(GardenPalette.inkMuted)
                 }
-            } else if resource.isPlayable {
-            Text("Requires Lv \(resource.requiredLevel)")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(GardenPalette.inkMuted)
-        } else {
-            Text("Coming soon · Lv \(resource.requiredLevel)")
-                .font(.caption.weight(.semibold))
-                .foregroundStyle(GardenPalette.inkMuted)
-                .multilineTextAlignment(.trailing)
+            }
+            Spacer(minLength: 8)
+            if game.canGather(resource) {
+                HStack(spacing: 6) {
+                    Button {
+                        game.removeWorker(from: resource)
+                    } label: {
+                        Image(systemName: "minus")
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(GardenPalette.inkMuted)
+                    .disabled(!game.canRemoveWorker(from: resource))
+                    .accessibilityLabel("Remove worker from \(resource.name)")
+
+                    Text(assigned.formatted())
+                        .font(.subheadline.weight(.semibold).monospacedDigit())
+                        .foregroundStyle(assigned > 0 ? GardenPalette.moss : GardenPalette.inkMuted)
+                        .frame(minWidth: 18)
+
+                    Button {
+                        game.assignWorker(to: resource)
+                    } label: {
+                        Image(systemName: "plus")
+                            .frame(width: 28, height: 28)
+                    }
+                    .buttonStyle(.bordered)
+                    .controlSize(.small)
+                    .tint(GardenPalette.moss)
+                    .disabled(!game.canAssignWorker(to: resource))
+                    .accessibilityLabel("Add worker to \(resource.name)")
+                }
+            }
         }
+        .padding(.horizontal, 8)
+        .padding(.vertical, 6)
+        .background(
+            assigned > 0 ? GardenPalette.moss.opacity(0.12) : Color.clear,
+            in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+        )
+        .opacity(game.canGather(resource) || !resource.isPlayable ? 1 : 0.6)
     }
 }

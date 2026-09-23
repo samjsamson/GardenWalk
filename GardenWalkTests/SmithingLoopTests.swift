@@ -76,14 +76,8 @@ final class SmithingLoopTests: XCTestCase {
         XCTAssertTrue(game.playerRecord.hasSmeltedBronzeBar)
 
         let helmet = try XCTUnwrap(SmithingCatalog.smithing.first { $0.output == .bronzeHelmet })
-        XCTAssertEqual(game.smith(helmet, quantity: 1), "You need a hammer to smith items.")
-        XCTAssertEqual(game.inventory.quantity(of: .bronzeBar), 2)
-        XCTAssertEqual(game.inventory.quantity(of: .hammer), 0)
-
-        game.inventory.add(.hammer, amount: 1)
         let xpBeforeSmith = game.skills[.smithing]?.totalXP ?? 0
         XCTAssertNil(game.smith(helmet, quantity: 1))
-        XCTAssertEqual(game.inventory.quantity(of: .hammer), 1)
         XCTAssertEqual(game.inventory.quantity(of: .bronzeBar), 0)
         XCTAssertEqual(game.inventory.quantity(of: .bronzeHelmet), 1)
         XCTAssertEqual(game.skills[.smithing]?.totalXP, xpBeforeSmith + helmet.xpReward)
@@ -133,7 +127,6 @@ final class SmithingLoopTests: XCTestCase {
         XCTAssertEqual(reloaded.inventory.quantity(of: .ironDagger), 0)
         XCTAssertEqual(reloaded.equippedItem(in: .helmet), .bronzeHelmet)
         XCTAssertEqual(reloaded.inventory.quantity(of: .bronzeHelmet), 0)
-        XCTAssertEqual(reloaded.inventory.quantity(of: .hammer), 1)
         reloaded.stop()
     }
 

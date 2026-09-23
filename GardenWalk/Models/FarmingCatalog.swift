@@ -113,6 +113,7 @@ enum FarmingCatalog {
         case .swordfish: 14
         case .milk: 2
         case .cowMeat: 6
+        case .ratMeat: 3
         case .porkMeat: 5
         case .turnip: 4
         case .carrot: 8

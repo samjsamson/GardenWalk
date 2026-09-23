@@ -180,6 +180,9 @@ final class GameController {
     }
 
     func storeStatus(for listing: StoreListing) -> String? {
+        if ownsUniqueTool(listing) {
+            return "Owned"
+        }
         if let required = listing.requiredTotalLevel {
             return "Total Level \(totalLevel) / \(required)"
         }
@@ -191,6 +194,16 @@ final class GameController {
         case .inventoryItem:
             nil
         }
+    }
+
+    /// True when this listing is a one-time tool the player already owns (bag or equipped).
+    func ownsUniqueTool(_ listing: StoreListing) -> Bool {
+        guard case .inventoryItem(let item) = listing.product, StoreCatalog.isUniqueTool(item) else {
+            return false
+        }
+        if inventory.quantity(of: item) > 0 { return true }
+        if let slot = item.equipmentSlot, equippedItem(in: slot) == item { return true }
+        return false
     }
 
     func purchaseCost(_ listing: StoreListing, quantity: Int) -> Int {
@@ -209,6 +222,7 @@ final class GameController {
 
     func maxPurchaseQuantity(for listing: StoreListing) -> Int {
         guard meetsStoreRequirements(listing) else { return 0 }
+        if ownsUniqueTool(listing) { return 0 }
         let gold = inventory.quantity(of: .gold)
         switch listing.product {
         case .backpackUpgrade:
@@ -229,10 +243,14 @@ final class GameController {
             let affordable = gold / unit
             let slots = max(0, workerCap - workerPool.ownedCount)
             return min(affordable, slots)
-        case .inventoryItem:
+        case .inventoryItem(let item):
             let unit = price(for: listing)
             guard unit > 0 else { return 0 }
-            return gold / unit
+            let affordable = gold / unit
+            if StoreCatalog.isUniqueTool(item) {
+                return min(1, affordable)
+            }
+            return affordable
         }
     }
 
@@ -306,14 +324,33 @@ final class GameController {
         workerPool.assignedCount(for: spot)
     }
 
+    func assignedWorkers(for resource: ResourceDefinition) -> Int {
+        workerPool.assignedCount(forResourceID: resource.id)
+    }
+
     func canAssignWorker(to spot: ResourceSpotKind) -> Bool {
-        workerPool.unassignedCount > 0
+        workerPool.unassignedCount > 0 && spot != .gardenSpot
+    }
+
+    func canAssignWorker(to resource: ResourceDefinition) -> Bool {
+        canGather(resource) && workerPool.unassignedCount > 0
     }
 
     func assignWorker(to spot: ResourceSpotKind) {
         guard canAssignWorker(to: spot) else { return }
-        guard workerPool.assignedCount(for: spot) < gatheringNodes(for: spot).count else { return }
-        workerPool.setAssignedCount(workerPool.assignedCount(for: spot) + 1, for: spot)
+        let resource = focusedResource(for: spot)
+            ?? ResourceCatalog.resources(for: spot).first(where: { canGather($0) })
+        guard let resource else { return }
+        assignWorker(to: resource)
+    }
+
+    func assignWorker(to resource: ResourceDefinition) {
+        guard canAssignWorker(to: resource) else { return }
+        workerPool.setAssignedCount(
+            workerPool.assignedCount(forResourceID: resource.id) + 1,
+            forResourceID: resource.id
+        )
+        workerPool.selectResource(resource)
         playerRecord.hasAssignedWorker = true
         save()
     }
@@ -322,10 +359,43 @@ final class GameController {
         workerPool.assignedCount(for: spot) > 0
     }
 
+    func canRemoveWorker(from resource: ResourceDefinition) -> Bool {
+        workerPool.assignedCount(forResourceID: resource.id) > 0
+    }
+
     func removeWorker(from spot: ResourceSpotKind) {
         guard canRemoveWorker(from: spot) else { return }
-        workerPool.setAssignedCount(workerPool.assignedCount(for: spot) - 1, for: spot)
+        // Remove from the focused resource first, else any assigned resource on the spot.
+        if let focused = focusedResource(for: spot),
+           workerPool.assignedCount(forResourceID: focused.id) > 0 {
+            removeWorker(from: focused)
+            return
+        }
+        if let resource = ResourceCatalog.resources(for: spot)
+            .first(where: { workerPool.assignedCount(forResourceID: $0.id) > 0 }) {
+            removeWorker(from: resource)
+        }
+    }
+
+    func removeWorker(from resource: ResourceDefinition) {
+        guard canRemoveWorker(from: resource) else { return }
+        workerPool.setAssignedCount(
+            workerPool.assignedCount(forResourceID: resource.id) - 1,
+            forResourceID: resource.id
+        )
         save()
+    }
+
+    /// Idle / assigned counts for the character worker overview bar.
+    func workerOverviewCounts() -> [(spot: ResourceSpotKind?, count: Int, symbol: String, label: String)] {
+        var rows: [(ResourceSpotKind?, Int, String, String)] = [
+            (nil, unassignedWorkerCount, "person.fill", "Idle")
+        ]
+        for spot in ResourceSpotKind.allCases where spot != .gardenSpot {
+            rows.append((spot, assignedWorkers(for: spot), spot.symbolName, spot.title))
+        }
+        rows.append((.gardenSpot, 0, ResourceSpotKind.gardenSpot.symbolName, ResourceSpotKind.gardenSpot.title))
+        return rows.map { (spot: $0.0, count: $0.1, symbol: $0.2, label: $0.3) }
     }
 
     func performManualGather(_ resource: ResourceDefinition) {
@@ -758,8 +828,6 @@ final class GameController {
             current = playerRecord.hasMinedTin || inventory.quantity(of: .tinOre) > 0 ? goal : 0
         case .smeltBronze:
             current = playerRecord.hasSmeltedBronzeBar || inventory.quantity(of: .bronzeBar) > 0 ? goal : 0
-        case .obtainHammer:
-            current = playerRecord.hasObtainedHammer || inventory.quantity(of: .hammer) > 0 ? goal : 0
         case .visitAnvil:
             current = playerRecord.hasOpenedAnvil ? goal : 0
         case .smithBronze:
@@ -804,7 +872,6 @@ final class GameController {
         switch item {
         case .copperOre: playerRecord.hasMinedCopper = true
         case .tinOre: playerRecord.hasMinedTin = true
-        case .hammer: playerRecord.hasObtainedHammer = true
         case .bronzeBar: playerRecord.hasSmeltedBronzeBar = true
         default: break
         }
@@ -991,23 +1058,24 @@ final class GameController {
     }
 
     func gatheringNodes(for spot: ResourceSpotKind) -> [GatheringNode] {
-        let count = max(0, workerPool.ownedCount)
-        guard count > 0 else { return [] }
-        let eligible = ResourceCatalog.resources(for: spot).filter { canGather($0) }
-        let pool = eligible.isEmpty
-            ? Array(ResourceCatalog.resources(for: spot).filter(\.isPlayable).prefix(1))
-            : eligible
-        guard !pool.isEmpty else { return [] }
-        let assigned = workerPool.assignedCount(for: spot)
-        let focused = focusedResource(for: spot)
-        return (0..<count).map { index in
-            GatheringNode(
-                index: index,
-                resource: focused ?? pool[index % pool.count],
-                variant: index / pool.count,
-                isOccupied: index < assigned
-            )
+        var nodes: [GatheringNode] = []
+        var index = 0
+        for resource in ResourceCatalog.resources(for: spot) {
+            let assigned = workerPool.assignedCount(forResourceID: resource.id)
+            guard assigned > 0 else { continue }
+            for variant in 0..<assigned {
+                nodes.append(
+                    GatheringNode(
+                        index: index,
+                        resource: resource,
+                        variant: variant,
+                        isOccupied: true
+                    )
+                )
+                index += 1
+            }
         }
+        return nodes
     }
 
     /// The ore, tree, or fish the player chose for this spot. Nil until they pick one.
@@ -1052,7 +1120,6 @@ final class GameController {
     }
 
     func maxSmithCount(_ recipe: SmithingRecipe) -> Int {
-        guard inventory.quantity(of: .hammer) > 0 else { return 0 }
         guard skillLevel(for: .smithing) >= recipe.requiredSmithingLevel else { return 0 }
         guard recipe.barsRequired > 0 else { return 0 }
         return inventory.quantity(of: recipe.bar) / recipe.barsRequired
@@ -1060,11 +1127,6 @@ final class GameController {
 
     @discardableResult
     func smith(_ recipe: SmithingRecipe, quantity: Int) -> String? {
-        guard inventory.quantity(of: .hammer) > 0 else {
-            let message = "You need a hammer to smith items."
-            postNotice(message)
-            return message
-        }
         guard skillLevel(for: .smithing) >= recipe.requiredSmithingLevel else {
             let message = "Requires Smithing \(recipe.requiredSmithingLevel)."
             postNotice(message)

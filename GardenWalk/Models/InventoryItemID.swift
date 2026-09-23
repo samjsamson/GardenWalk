@@ -35,6 +35,7 @@ enum InventoryItemID: String, CaseIterable, Codable, Identifiable {
     case bronzeDagger
     case milk
     case cowMeat
+    case ratMeat
     case bones
     case porkMeat
     case steelDagger
@@ -159,6 +160,7 @@ enum InventoryItemID: String, CaseIterable, Codable, Identifiable {
         case .bronzeDagger: "Bronze Dagger"
         case .milk: "Milk"
         case .cowMeat: "Cow Meat"
+        case .ratMeat: "Rat Meat"
         case .bones: "Bones"
         case .porkMeat: "Pork Meat"
         default:

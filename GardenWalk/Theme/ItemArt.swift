@@ -161,7 +161,7 @@ enum ItemArtCatalog {
             return painted(item, category: .material, glyph: .woodLogs, tint: ItemPalette.wood, secondary: ItemPalette.woodLight)
         case .milk:
             return symbol(item, category: .food, symbol: "drop.fill", tint: Color(red: 0.85, green: 0.92, blue: 0.98), secondary: ItemPalette.steel)
-        case .cowMeat, .porkMeat:
+        case .cowMeat, .porkMeat, .ratMeat:
             return symbol(item, category: .food, symbol: "fork.knife", tint: Color(red: 0.62, green: 0.24, blue: 0.20), secondary: ItemPalette.wood)
         case .bones:
             return symbol(item, category: .material, symbol: "capsule.fill", tint: Color(red: 0.93, green: 0.90, blue: 0.82), secondary: ItemPalette.stone)

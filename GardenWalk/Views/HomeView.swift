@@ -16,13 +16,9 @@ struct HomeView: View {
     @State private var showStore = false
     @State private var storeExpanded = false
     @State private var sellExpanded = false
-    @State private var craftingSheet: CraftingSheet?
-    @State private var expandedCrafting: Set<String> = []
     @State private var showCombat = false
     @State private var combatExpanded = false
     @State private var battlingEnemy: EnemyDefinition?
-    @State private var showForge = false
-    @State private var forgeExpanded = false
 
     var body: some View {
         let _ = game.stateVersion
@@ -31,9 +27,7 @@ struct HomeView: View {
                 VStack(spacing: 20) {
                     tasksSection
                     combatSection
-                    forgeSection
                     generalStoreSection
-                    craftingSection
                 }
                 .padding()
             }
@@ -55,28 +49,12 @@ struct HomeView: View {
                     storeContents(limit: nil)
                 }
             }
-            .sheet(item: $craftingSheet) { sheet in
-                fullSheet(title: sheet.title) {
-                    craftingContents(sheet)
-                }
-            }
             .sheet(isPresented: $showCombat) {
                 NavigationStack {
                     CombatView()
                         .toolbar {
                             ToolbarItem(placement: .cancellationAction) {
                                 Button("Close") { showCombat = false }
-                            }
-                        }
-                }
-                .environment(game)
-            }
-            .sheet(isPresented: $showForge) {
-                NavigationStack {
-                    ForgeView()
-                        .toolbar {
-                            ToolbarItem(placement: .cancellationAction) {
-                                Button("Close") { showForge = false }
                             }
                         }
                 }
@@ -126,7 +104,6 @@ struct HomeView: View {
 
     private func dismissSheet() {
         showStore = false
-        craftingSheet = nil
     }
 
     private var combatPool: [EnemyDefinition] {
@@ -163,78 +140,6 @@ struct HomeView: View {
             }
         }
         .cardStyle()
-    }
-
-    private var forgePool: [ForgePreview] {
-        let level = game.skillLevel(for: .smithing)
-        let smith = SmithingCatalog.smithing
-            .filter { level >= $0.requiredSmithingLevel }
-            .sorted { $0.requiredSmithingLevel > $1.requiredSmithingLevel }
-        if !smith.isEmpty {
-            return smith.map { recipe in
-                ForgePreview(
-                    id: recipe.id,
-                    item: recipe.output,
-                    title: recipe.output.displayName,
-                    detail: "Smithing \(recipe.requiredSmithingLevel) · \(recipe.barsRequired) \(recipe.bar.displayName)",
-                    enabled: game.maxSmithCount(recipe) > 0 && game.inventory.quantity(of: .hammer) > 0,
-                    actionTitle: "Smith"
-                )
-            }
-        }
-        return SmithingCatalog.smelting.map { recipe in
-            ForgePreview(
-                id: recipe.id,
-                item: recipe.output,
-                title: recipe.output.displayName,
-                detail: "Smithing \(recipe.requiredSmithingLevel)",
-                enabled: game.maxSmeltCount(recipe) > 0,
-                actionTitle: "Smelt"
-            )
-        }
-    }
-
-    private var forgeSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            sectionTitle("Forge") { showForge = true }
-            Text("Highest recipes you can work right now")
-                .font(.caption)
-                .foregroundStyle(GardenPalette.inkMuted)
-            ForEach(window(forgePool, expanded: forgeExpanded)) { item in
-                forgeRow(item)
-            }
-            if forgePool.count > 3 {
-                expandButton(forgeExpanded) { forgeExpanded.toggle() }
-            }
-        }
-        .cardStyle()
-    }
-
-    private func forgeRow(_ item: ForgePreview) -> some View {
-        HStack(spacing: 10) {
-            ItemIconView(item: item.item, size: 36)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(item.title)
-                    .font(.subheadline.weight(.semibold))
-                Text(item.detail)
-                    .font(.caption2)
-                    .foregroundStyle(GardenPalette.inkMuted)
-            }
-            Spacer(minLength: 8)
-            Button(item.actionTitle) { performForge(item) }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.small)
-                .tint(GardenPalette.moss)
-                .disabled(!item.enabled)
-        }
-    }
-
-    private func performForge(_ item: ForgePreview) {
-        if let recipe = SmithingCatalog.smithing.first(where: { $0.id == item.id }) {
-            _ = game.smith(recipe, quantity: 1)
-        } else if let recipe = SmithingCatalog.smelting.first(where: { $0.id == item.id }) {
-            game.smelt(recipe, quantity: 1)
-        }
     }
 
     @ViewBuilder
@@ -338,6 +243,7 @@ struct HomeView: View {
     }
 
     private func buyRow(_ listing: StoreListing) -> some View {
+        let owned = game.ownsUniqueTool(listing)
         let quantity = buyQuantity(for: listing)
         let maxQuantity = game.maxPurchaseQuantity(for: listing)
         return StoreListingRow(
@@ -346,10 +252,11 @@ struct HomeView: View {
             totalCost: game.purchaseCost(listing, quantity: quantity),
             status: game.storeStatus(for: listing),
             footnote: listing.product == .worker ? game.workerCapNotice : nil,
-            canDecrease: quantity > 1,
-            canIncrease: maxQuantity > quantity,
-            canMax: maxQuantity >= 1,
-            canPurchase: game.canPurchase(listing, quantity: quantity),
+            isOwned: owned,
+            canDecrease: !owned && quantity > 1,
+            canIncrease: !owned && maxQuantity > quantity,
+            canMax: !owned && maxQuantity >= 1,
+            canPurchase: !owned && game.canPurchase(listing, quantity: quantity),
             onInspect: { inspectedListing = listing },
             onDecrease: { changeBuyQuantity(for: listing, delta: -1) },
             onIncrease: { changeBuyQuantity(for: listing, delta: 1) },
@@ -419,79 +326,6 @@ struct HomeView: View {
         sellQuantities[item.rawValue] = min(max(1, next), owned)
     }
 
-    private var craftingSection: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            sectionTitle("Crafting") { craftingSheet = .all }
-            ForEach(CraftingCategory.allCases) { category in
-                let recipes = CraftingCatalog.recipes(in: category)
-                if !recipes.isEmpty {
-                    VStack(alignment: .leading, spacing: 10) {
-                        Button {
-                            craftingSheet = .category(category)
-                        } label: {
-                            HStack(spacing: 4) {
-                                Text(category.displayName)
-                                    .font(.subheadline.weight(.semibold))
-                                Image(systemName: "arrow.up.right.square")
-                                    .font(.caption2)
-                            }
-                            .foregroundStyle(GardenPalette.moss)
-                        }
-                        .buttonStyle(.plain)
-                        ForEach(window(recipes, expanded: expandedCrafting.contains(category.id))) { recipe in
-                            craftRow(recipe)
-                        }
-                        if recipes.count > 3 {
-                            expandButton(expandedCrafting.contains(category.id)) {
-                                if expandedCrafting.contains(category.id) {
-                                    expandedCrafting.remove(category.id)
-                                } else {
-                                    expandedCrafting.insert(category.id)
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-        .cardStyle()
-    }
-
-    @ViewBuilder
-    private func craftingContents(_ sheet: CraftingSheet) -> some View {
-        switch sheet {
-        case .all:
-            ForEach(CraftingCategory.allCases) { category in
-                let recipes = CraftingCatalog.recipes(in: category)
-                if !recipes.isEmpty {
-                    Text(category.displayName)
-                        .font(.headline)
-                        .foregroundStyle(GardenPalette.moss)
-                    ForEach(recipes) { recipe in
-                        craftRow(recipe)
-                    }
-                }
-            }
-        case .category(let category):
-            ForEach(CraftingCatalog.recipes(in: category)) { recipe in
-                craftRow(recipe)
-            }
-        }
-    }
-
-    private func craftRow(_ recipe: CraftingRecipeDefinition) -> some View {
-        CraftingRow(
-            item: recipe.output,
-            title: recipe.output.displayName,
-            detail: recipe.materialsDescription,
-            buttonTitle: "Craft",
-            isEnabled: game.canCraft(recipe),
-            outputQuantity: recipe.outputQuantity
-        ) {
-            game.craft(recipe)
-        }
-    }
-
     private func sectionTitle(_ title: String, action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(spacing: 6) {
@@ -523,34 +357,6 @@ struct HomeView: View {
     }
 }
 
-private enum CraftingSheet: Identifiable {
-    case all
-    case category(CraftingCategory)
-
-    var id: String {
-        switch self {
-        case .all: "all"
-        case .category(let category): category.id
-        }
-    }
-
-    var title: String {
-        switch self {
-        case .all: "Crafting"
-        case .category(let category): category.displayName
-        }
-    }
-}
-
-private struct ForgePreview: Identifiable {
-    let id: String
-    let item: InventoryItemID
-    let title: String
-    let detail: String
-    let enabled: Bool
-    let actionTitle: String
-}
-
 private extension View {
     func cardStyle() -> some View {
         padding()
@@ -565,6 +371,7 @@ private struct StoreListingRow: View {
     let totalCost: Int
     let status: String?
     let footnote: String?
+    var isOwned: Bool = false
     let canDecrease: Bool
     let canIncrease: Bool
     let canMax: Bool
@@ -588,34 +395,47 @@ private struct StoreListingRow: View {
                     if let status {
                         Text(status)
                             .font(.caption.weight(.semibold))
-                            .foregroundStyle(GardenPalette.leaf)
+                            .foregroundStyle(isOwned ? GardenPalette.moss : GardenPalette.leaf)
                     }
-                    HStack(spacing: 3) {
-                        Text(totalCost.formatted())
-                            .font(.caption.weight(.semibold).monospacedDigit())
-                        ItemIconView(item: .gold, size: 14)
+                    if !isOwned {
+                        HStack(spacing: 3) {
+                            Text(totalCost.formatted())
+                                .font(.caption.weight(.semibold).monospacedDigit())
+                            ItemIconView(item: .gold, size: 14)
+                        }
                     }
                 }
                 Spacer(minLength: 8)
-                Button("Buy", action: onPurchase)
-                    .buttonStyle(.borderedProminent)
-                    .controlSize(.small)
-                    .tint(GardenPalette.moss)
-                    .disabled(!canPurchase)
+                if isOwned {
+                    Text("Owned")
+                        .font(.caption.weight(.bold))
+                        .foregroundStyle(GardenPalette.moss)
+                        .padding(.horizontal, 10)
+                        .padding(.vertical, 6)
+                        .background(GardenPalette.moss.opacity(0.12), in: Capsule())
+                } else {
+                    Button("Buy", action: onPurchase)
+                        .buttonStyle(.borderedProminent)
+                        .controlSize(.small)
+                        .tint(GardenPalette.moss)
+                        .disabled(!canPurchase)
+                }
             }
-            HStack(spacing: 6) {
-                Button("-", action: onDecrease)
-                    .disabled(!canDecrease)
-                Text(quantity.formatted())
-                    .font(.caption.monospacedDigit())
-                    .frame(minWidth: 16)
-                Button("+", action: onIncrease)
-                    .disabled(!canIncrease)
-                Button("Max", action: onMax)
-                    .disabled(!canMax)
+            if !isOwned {
+                HStack(spacing: 6) {
+                    Button("-", action: onDecrease)
+                        .disabled(!canDecrease)
+                    Text(quantity.formatted())
+                        .font(.caption.monospacedDigit())
+                        .frame(minWidth: 16)
+                    Button("+", action: onIncrease)
+                        .disabled(!canIncrease)
+                    Button("Max", action: onMax)
+                        .disabled(!canMax)
+                }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
             }
-            .buttonStyle(.bordered)
-            .controlSize(.small)
             if let footnote {
                 Text(footnote)
                     .font(.caption2)
@@ -720,65 +540,3 @@ private struct SellItemRow: View {
     }
 }
 
-private struct CraftingRow: View {
-    let item: InventoryItemID
-    let title: String
-    let detail: String
-    var buttonTitle: String = "Craft"
-    let isEnabled: Bool
-    let outputQuantity: Int
-    let action: () -> Bool
-    @State private var gains: [UUID] = []
-
-    var body: some View {
-        HStack(spacing: 12) {
-            ItemIconView(item: item, size: 36)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title)
-                    .font(.subheadline.weight(.semibold))
-                Text(detail)
-                    .font(.caption)
-                    .foregroundStyle(GardenPalette.inkMuted)
-            }
-            Spacer()
-            Button(buttonTitle) {
-                guard action() else { return }
-                gains.append(UUID())
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(GardenPalette.moss)
-            .disabled(!isEnabled)
-            .overlay(alignment: .top) {
-                ForEach(gains, id: \.self) { id in
-                    CraftGainLabel(quantity: outputQuantity) {
-                        gains.removeAll { $0 == id }
-                    }
-                }
-            }
-        }
-    }
-}
-
-private struct CraftGainLabel: View {
-    @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    let quantity: Int
-    let onFinish: () -> Void
-    @State private var floating = false
-
-    var body: some View {
-        Text("+\(quantity)")
-            .font(.title3.bold())
-            .foregroundStyle(GardenPalette.leaf)
-            .shadow(color: .white, radius: 2)
-            .offset(y: floating && !reduceMotion ? -46 : -8)
-            .opacity(floating ? 0 : 1)
-            .allowsHitTesting(false)
-            .accessibilityHidden(true)
-            .task {
-                withAnimation(.easeOut(duration: 0.85)) { floating = true }
-                do { try await Task.sleep(for: .milliseconds(900)) }
-                catch { return }
-                onFinish()
-            }
-    }
-}

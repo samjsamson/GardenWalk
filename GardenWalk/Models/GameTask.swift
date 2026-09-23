@@ -9,7 +9,6 @@ enum GameTaskKind: Equatable {
     case mineCopper
     case mineTin
     case smeltBronze
-    case obtainHammer
     case visitAnvil
     case smithBronze
     case equipBronze
@@ -82,23 +81,16 @@ enum GameTaskCatalog {
             goldReward: 16
         ),
         GameTaskDefinition(
-            id: "buy-hammer",
-            title: "Buy a Hammer",
-            requirement: "Buy a hammer from the General Store. You need one to use the anvil.",
-            kind: .obtainHammer,
-            goldReward: 10
-        ),
-        GameTaskDefinition(
             id: "visit-anvil",
             title: "Visit the Anvil",
-            requirement: "Open the Forge and select the Anvil.",
+            requirement: "Open the Forge tab and select the Anvil.",
             kind: .visitAnvil,
             goldReward: 8
         ),
         GameTaskDefinition(
             id: "smith-bronze",
             title: "Smith a Bronze Item",
-            requirement: "At the anvil, smith any bronze weapon or armor. The hammer is not used up.",
+            requirement: "At the anvil, smith any bronze weapon or armor.",
             kind: .smithBronze,
             goldReward: 20
         ),

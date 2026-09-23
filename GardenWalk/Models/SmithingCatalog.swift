@@ -428,7 +428,6 @@ enum SmithingCatalog {
             material(.steelBar, name: "Steel Bar", summary: "Smelted from iron ore and coal.", effect: "Used at the anvil to smith steel equipment.", sell: MetalTier.steel.barSellValue, visual: .bar, tier: .steel),
             material(.mithrilBar, name: "Mithril Bar", summary: "Smelted from mithril ore and coal.", effect: "Used at the anvil to smith mithril equipment.", sell: MetalTier.mithril.barSellValue, visual: .bar, tier: .mithril),
             material(.adamantBar, name: "Adamant Bar", summary: "Smelted from adamant ore and coal.", effect: "Used at the anvil to smith adamant equipment.", sell: MetalTier.adamant.barSellValue, visual: .bar, tier: .adamant),
-            material(.hammer, name: "Hammer", summary: "A reusable smithing tool.", effect: "You need a hammer to smith items at the anvil. It is not used up.", sell: 2, visual: .hammer, tier: nil),
             material(.leather, name: "Leather", summary: "Tanned hide used for boots.", effect: "Craft leather boots, or sell it at the General Store.", sell: 2, visual: .leather, tier: nil)
         ]
     }

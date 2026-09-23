@@ -172,29 +172,41 @@ struct CombatBattleView: View {
     }
 
     private var commandPanel: some View {
-        VStack(alignment: .leading, spacing: 6) {
+        VStack(alignment: .leading, spacing: 10) {
             if !message.isEmpty {
                 Text(message)
-                    .font(.caption2)
+                    .font(.caption)
                     .foregroundStyle(GardenPalette.ink)
                     .lineLimit(2)
             }
             if showSpells {
                 spellPanel
             } else {
-                HStack(spacing: 8) {
-                    Button("Attack") { strike() }
-                    Button("Magic") { showSpells = true }
+                HStack(spacing: 12) {
+                    Button {
+                        strike()
+                    } label: {
+                        Text("Attack")
+                            .font(.title3.weight(.bold))
+                            .frame(maxWidth: .infinity, minHeight: 56)
+                    }
+                    Button {
+                        showSpells = true
+                    } label: {
+                        Text("Magic")
+                            .font(.title3.weight(.bold))
+                            .frame(maxWidth: .infinity, minHeight: 56)
+                    }
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(GardenPalette.moss)
-                .controlSize(.small)
+                .controlSize(.large)
                 .disabled(resolving)
             }
         }
-        .padding(8)
-        .frame(maxWidth: 300)
-        .background(.white.opacity(0.95), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+        .padding(12)
+        .frame(maxWidth: 360)
+        .background(.white.opacity(0.95), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
     private var spellPanel: some View {

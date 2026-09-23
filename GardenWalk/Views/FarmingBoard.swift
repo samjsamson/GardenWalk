@@ -123,25 +123,27 @@ struct FarmingBoard: View {
     }
 
     private func growingRow(_ crop: CropDefinition, index: Int) -> some View {
-        let remaining = game.growthRemaining(for: game.farmPlots[index])
-        let ready = remaining <= 0
-        return HStack(spacing: 8) {
-            ItemIconView(item: crop.harvest, size: 28)
-            VStack(alignment: .leading, spacing: 2) {
-                Text(crop.name)
-                    .font(.caption.weight(.semibold))
-                Text(ready ? "Ready · \(crop.harvestQuantity) \(crop.harvest.displayName)" : "\(Int(ceil(remaining)))s left")
-                    .font(.caption2)
-                    .foregroundStyle(ready ? GardenPalette.moss : GardenPalette.inkMuted)
+        TimelineView(.periodic(from: .now, by: 1)) { context in
+            let remaining = game.growthRemaining(for: game.farmPlots[index], now: context.date)
+            let ready = remaining <= 0
+            HStack(spacing: 8) {
+                ItemIconView(item: crop.harvest, size: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(crop.name)
+                        .font(.caption.weight(.semibold))
+                    Text(ready ? "Ready · \(crop.harvestQuantity) \(crop.harvest.displayName)" : "\(Int(ceil(remaining)))s left")
+                        .font(.caption2)
+                        .foregroundStyle(ready ? GardenPalette.moss : GardenPalette.inkMuted)
+                }
+                Spacer()
+                Button("Harvest") {
+                    game.harvestPlot(index)
+                }
+                .buttonStyle(.borderedProminent)
+                .controlSize(.small)
+                .tint(GardenPalette.moss)
+                .disabled(!ready)
             }
-            Spacer()
-            Button("Harvest") {
-                game.harvestPlot(index)
-            }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.small)
-            .tint(GardenPalette.moss)
-            .disabled(!ready)
         }
     }
 }

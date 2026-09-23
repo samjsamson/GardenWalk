@@ -16,7 +16,10 @@ enum DropTableService {
 
         for entry in table {
             guard Double.random(in: 0..<1, using: &generator) <= entry.chance else { continue }
-            let quantity = Int.random(in: entry.minQuantity...entry.maxQuantity, using: &generator)
+            let low = min(entry.minQuantity, entry.maxQuantity)
+            let high = max(entry.minQuantity, entry.maxQuantity)
+            let quantity = Int.random(in: low...high, using: &generator)
+            guard quantity > 0 else { continue }
             merged[entry.item, default: 0] += quantity
         }
 

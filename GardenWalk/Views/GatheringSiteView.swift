@@ -15,7 +15,7 @@ struct GatheringSiteView: View {
 
     var body: some View {
         if nodes.isEmpty {
-            Text("Hire a worker at the General Store. Each worker you own opens a node in this area.")
+            Text("Assign workers to resources below. Collect what they produce from Worker Storage.")
                 .font(.caption)
                 .foregroundStyle(GardenPalette.inkMuted)
         } else {

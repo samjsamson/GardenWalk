@@ -77,7 +77,10 @@ final class InventoryService {
             "emberMote": InventoryItemID.fireRune.rawValue,
             "focusShard": InventoryItemID.mindRune.rawValue
         ]
-        let removed: Set<String> = ["appleSeed", "oakSapling", "seedPack", "treeBranch", "mysteryCrate", "workerRations", "lootBag"]
+        let removed: Set<String> = [
+            "appleSeed", "oakSapling", "seedPack", "treeBranch", "mysteryCrate",
+            "workerRations", "lootBag", "hammer"
+        ]
 
         for entry in entries {
             if removed.contains(entry.itemID) {

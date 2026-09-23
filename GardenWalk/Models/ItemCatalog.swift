@@ -60,6 +60,8 @@ enum ItemCatalog {
             return foodDetails(item, summary: "A drink dropped by cows.", sellValue: 3, extra: "A combat drop.")
         case .cowMeat:
             return foodDetails(item, summary: "Hearty meat from a cow.", sellValue: 4, extra: "A combat drop.")
+        case .ratMeat:
+            return foodDetails(item, summary: "Scrawny meat from a rat.", sellValue: 2, extra: "A common combat drop.")
         case .bones:
             return ItemDetails(summary: "Remains dropped by skeletons.", effect: "A combat drop.", sellValue: 2)
         case .porkMeat:

@@ -36,8 +36,8 @@ enum EnemyCatalog {
         isAvailable: true,
         guaranteedVictory: true,
         dropTable: [
-            DropTableEntry(item: .gold, chance: 1.0, minQuantity: 1, maxQuantity: 3),
-            DropTableEntry(item: .wood, chance: 0.20, minQuantity: 1, maxQuantity: 2)
+            DropTableEntry(item: .gold, chance: 1.0, minQuantity: 0, maxQuantity: 5),
+            DropTableEntry(item: .ratMeat, chance: 0.85, minQuantity: 1, maxQuantity: 2)
         ]
     )
 
